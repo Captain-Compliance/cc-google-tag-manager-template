@@ -2,5 +2,5 @@ homepage: 'www.captaincompliance.com'
 documentation: 'https://support.captaincompliance.com'
 versions:
   # latest version
-  - sha: a613004251139e105a5e758206f73b1d22d1ef78
+  - sha: 35624c667e01027cdb5e7d853f257b7acee8d4a9
     changeNotes: Initial release
