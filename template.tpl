@@ -15,7 +15,7 @@ ___INFO___
   "securityGroups": [],
   "displayName": "Captain Compliance",
   "description": "Captain Compliance provides a user-friendly platform backed by privacy professionals. We simplify the process of navigating regulations, giving your customers transparent choices, and building essential trust for your organization. Learn more at www.captaincompliance.com",
-  "categories": "categories": [
+  "categories": [
     "TAG_MANAGEMENT",
     "PERSONALIZATION"
   ],
