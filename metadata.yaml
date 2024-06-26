@@ -1,0 +1,6 @@
+homepage: 'www.captaincompliance.com'
+documentation: 'https://support.captaincompliance.com'
+versions:
+  # latest version
+  - sha:
+    changeNotes: Initial release
