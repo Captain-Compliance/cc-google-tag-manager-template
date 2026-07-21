@@ -1,0 +1,422 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-07-21 00:00:00",
+  "containerVersion": {
+    "accountId": "0000000000",
+    "containerId": "00000000",
+    "container": {
+      "accountId": "0000000000",
+      "containerId": "00000000",
+      "name": "Captain Compliance - Consent Cutover",
+      "publicId": "GTM-XXXXXXX",
+      "usageContext": [
+        "WEB"
+      ],
+      "fingerprint": "0",
+      "tagManagerUrl": ""
+    },
+    "builtInVariable": [
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "type": "EVENT",
+        "name": "Event"
+      }
+    ],
+    "variable": [
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "1",
+        "name": "CaptainCookie",
+        "type": "k",
+        "parameter": [
+          {
+            "type": "BOOLEAN",
+            "key": "decodeCookie",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "cc_consent_preference"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "2",
+        "name": "CaptainCookieParsed",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  // Try to get consent from cookie first\n  var cookieValue = {{CaptainCookie}};\n  if (cookieValue) {\n    try {\n      return JSON.parse(cookieValue);\n    } catch(e) {\n      console.error(\"Error parsing Captain Compliance cookie:\", e);\n    }\n  }\n  \n  // If cookie parsing fails or cookie doesn't exist, try data layer\n  try {\n    // Check if consent data exists in dataLayer\n    if (window.dataLayer) {\n      for (var i = 0; i < window.dataLayer.length; i++) {\n        var item = window.dataLayer[i];\n        // Look for consent objects in dataLayer\n        if (item && item.captainCompliance) {\n          return item.captainCompliance;\n        }\n      }\n    }\n  } catch(e) {\n    console.error(\"Error checking dataLayer for consent:\", e);\n  }\n  \n  // Return undefined if neither source has data\n  return undefined;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "3",
+        "name": "CaptainConsentStatus",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  var parsed = {{CaptainCookieParsed}};\n  \n  if (!parsed) {\n    return undefined;\n  }\n  \n  return parsed.status || undefined;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "4",
+        "name": "CaptainPerformance",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "captainComplianceConsent.selectedCookies.PERFORMANCE_COOKIES"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "5",
+        "name": "CaptainTargeting",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "captainComplianceConsent.selectedCookies.TARGETING_COOKIES"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "6",
+        "name": "CaptainFunctionality",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "captainComplianceConsent.selectedCookies.FUNCTIONALITY_COOKIES"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "7",
+        "name": "CaptainPerformancePassive",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function () {\n  var parsed = {{CaptainCookieParsed}};\n  var optInRegion = {{CaptainOptInRegion}};\n  var consentStatus = {{CaptainConsentStatus}};\n  var gpcSignal = navigator.globalPrivacyControl === true;\n  \n  if (parsed && parsed.selectedCookies) {\n    return parsed.selectedCookies.PERFORMANCE_COOKIES === true;\n  }\n  \n  if (gpcSignal) {\n    return false;\n  }\n  \n  return optInRegion === false && consentStatus === undefined;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "8",
+        "name": "CaptainTargetingPassive",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  var parsed = {{CaptainCookieParsed}};\n  var optInRegion = {{CaptainOptInRegion}};\n  var consentStatus = {{CaptainConsentStatus}};\n  var gpcSignal = navigator.globalPrivacyControl === true;\n  \n  if (parsed && parsed.selectedCookies) {\n    return parsed.selectedCookies.TARGETING_COOKIES === true;\n  }\n  \n  // Don't match passive mode if GPC is detected\n  if (gpcSignal) {\n    return false;\n  }\n  \n  return optInRegion === false && consentStatus === undefined;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "9",
+        "name": "CaptainFunctionalityPassive",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function () {\n  var parsed = {{CaptainCookieParsed}};\n  var optInRegion = {{CaptainOptInRegion}};\n  var consentStatus = {{CaptainConsentStatus}};\n  var gpcSignal = navigator.globalPrivacyControl === true;\n  \n  if (parsed && parsed.selectedCookies) {\n    return parsed.selectedCookies.FUNCTIONALITY_COOKIES === true;\n  }\n  \n  if (gpcSignal) {\n    return false;\n  }\n  \n  return optInRegion === false && consentStatus === undefined;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "10",
+        "name": "CaptainGPCSignalDetected",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  return navigator.globalPrivacyControl === true;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "11",
+        "name": "CaptainConsentExistedAtPageLoad",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  if (window._ccConsentAtLoad === undefined) {\n    window._ccConsentAtLoad = {{CaptainConsentStatus}} !== undefined;\n  }\n  return window._ccConsentAtLoad;\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "variableId": "12",
+        "name": "CaptainTargeting (Active Accept)",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  try {\n    return sessionStorage.getItem('cc_targeting_active_accept') === 'true';\n  } catch(e) {\n    return false;\n  }\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {}
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "CaptainOptInRegion",
+        "type": "jsm",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "javascript",
+            "value": "function() {\n  // SUPERSET of all four source containers - treats MORE regions as opt-in than\n  // any single production site. Confirm this region list with Captain Compliance\n  // compliance before shipping.\n  var cookieMatch = document.cookie.match(/(?:^|; )cc_consent_cc-modal-user-location=([^;]*)/);\n  if (!cookieMatch) return false;\n  try {\n    var cookieValue = decodeURIComponent(cookieMatch[1]);\n    var locationData = JSON.parse(cookieValue);\n    var code = locationData.countryCode.toUpperCase();\n    var regionCode = locationData.regionCode ? locationData.regionCode.toUpperCase() : '';\n\n    // Country-level opt-in (explicit consent required).\n    var optIn = [\n      // Europe: EU-27 + UK + EEA/EFTA + Switzerland (CH)\n      'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT',\n      'LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','GB','UK',\n      'IS','LI','NO','CH',\n      // South America\n      'BR','AR',\n      // Asia-Pacific\n      'TR','KR','TH','CN','IN',\n      // Middle East\n      'IL','AE',\n      // Africa\n      'ZA','NG','KE'\n    ];\n\n    // Canada: explicit opt-in required only for Quebec (QC).\n    if (code === 'CA') {\n      return regionCode === 'QC';\n    }\n\n    // United States: all-party-consent / elevated-risk states only.\n    if (code === 'US') {\n      // CA=California, FL=Florida, IL=Illinois, MA=Massachusetts, PA=Pennsylvania, WA=Washington\n      var usOptInRegionCodes = ['CA', 'FL', 'IL', 'MA', 'PA', 'WA'];\n      return usOptInRegionCodes.includes(regionCode);\n    }\n\n    return optIn.includes(code);\n  } catch (e) {\n    console.error('Error parsing cookie:', e);\n    return false;\n  }\n}"
+          }
+        ],
+        "fingerprint": "0",
+        "formatValue": {},
+        "variableId": "13"
+      }
+    ],
+    "trigger": [
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "Consent Initialization - All Pages",
+        "type": "CONSENT_INIT",
+        "fingerprint": "0",
+        "triggerId": "1"
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "captainComplianceConsent",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "captainComplianceConsent"
+              }
+            ]
+          }
+        ],
+        "fingerprint": "0",
+        "triggerId": "2"
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "captainComplianceConsentUpdated",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "captainComplianceConsentUpdated"
+              }
+            ]
+          }
+        ],
+        "fingerprint": "0",
+        "triggerId": "3"
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "captainComplianceConsentNormalized",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "captainComplianceConsentNormalized"
+              }
+            ]
+          }
+        ],
+        "fingerprint": "0",
+        "triggerId": "4"
+      }
+    ],
+    "tag": [
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "name": "Captain Compliance CMP - Banner + Consent Mode",
+        "type": "cvt_00000000_1",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "accessToken",
+            "value": "PASTE-YOUR-CC-ACCESS-TOKEN"
+          }
+        ],
+        "fingerprint": "0",
+        "firingTriggerId": [
+          "1"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "consentSettings": {
+          "consentStatus": "NOT_SET"
+        },
+        "tagId": "1"
+      },
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "tagId": "2",
+        "name": "Captain Compliance CMP - Consent Normalization",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n(function () {\n  // Ensure dataLayer exists\n  var dl = window.dataLayer = window.dataLayer || [];\n\n  // GTM built-in variable indicating which event triggered this tag\n  var ev = \"{{Event}}\";\n\n  // If this is the post-click consent update event, allow it to take precedence\n  if (ev === \"captainComplianceConsentUpdated\") {\n    window.__ccConsentNormalizedPushed = true;\n  }\n  // If this is the page-load consent event and the normalized event has already been pushed, exit\n  else if (window.__ccConsentNormalizedPushed) {\n    return;\n  }\n\n  // Mark normalized consent as pushed for this page load\n  window.__ccConsentNormalizedPushed = true;\n\n  // Push a single, canonical Captain Compliance consent event\n  dl.push({ event: \"captainComplianceConsentNormalized\" });\n})();\n</script>\n"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "fingerprint": "0",
+        "firingTriggerId": [
+          "2",
+          "3"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "paused": false,
+        "consentSettings": {
+          "consentStatus": "NOT_SET"
+        }
+      }
+    ],
+    "customTemplate": [
+      {
+        "accountId": "0000000000",
+        "containerId": "00000000",
+        "templateId": "1",
+        "name": "Captain Compliance CMP",
+        "templateData": "___TERMS_OF_SERVICE___\n\nBy creating or modifying this file you agree to Google Tag Manager's Community\nTemplate Gallery Developer Terms of Service available at\nhttps://developers.google.com/tag-manager/gallery-tos (or such other URL as\nGoogle may provide), as modified from time to time.\n\n\n___INFO___\n\n{\n  \"type\": \"TAG\",\n  \"id\": \"cvt_temp_public_id\",\n  \"version\": 1,\n  \"securityGroups\": [],\n  \"displayName\": \"Captain Compliance CMP\",\n  \"categories\": [\n    \"TAG_MANAGEMENT\",\n    \"PERSONALIZATION\",\n    \"ANALYTICS\",\n    \"ADVERTISING\",\n    \"MARKETING\",\n    \"CONVERSIONS\"\n  ],\n  \"brand\": {\n    \"id\": \"CaptainCompliance\",\n    \"displayName\": \"Captain Compliance\",\n    \"thumbnail\": \"data:image/png;base64,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\"\n  },\n  \"description\": \"Captain Compliance CMP. Loads the Captain Compliance consent banner and natively powers Google Consent Mode v2. Sets default consent (all non-essential purposes denied in consent-required regions) before Google tags fire, then updates ad_storage, analytics_storage, ad_user_data and ad_personalization when the visitor makes a choice. Learn more at https://captaincompliance.com\",\n  \"containerContexts\": [\n    \"WEB\"\n  ]\n}\n\n\n___TEMPLATE_PARAMETERS___\n\n[\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"accessToken\",\n    \"displayName\": \"Access Token\",\n    \"help\": \"Your Captain Compliance property access token (UUID). Found in your Captain Compliance dashboard. This is the only required field.\",\n    \"simpleValueType\": true,\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"consentModeGroup\",\n    \"displayName\": \"Google Consent Mode\",\n    \"groupStyle\": \"ZIPPY_OPEN\",\n    \"subParams\": [\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableConsentMode\",\n        \"checkboxText\": \"Set Google Consent Mode default + update state (recommended)\",\n        \"simpleValueType\": true,\n        \"defaultValue\": true,\n        \"help\": \"When on, the tag calls setDefaultConsentState on load and updateConsentState when the visitor chooses. This is required to pass Google's certified-CMP / Consent Mode v2 audit.\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"requiredRegions\",\n        \"displayName\": \"Consent-required regions (ISO 3166 codes, comma separated)\",\n        \"simpleValueType\": true,\n        \"defaultValue\": \"AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SI,ES,SE,IS,LI,NO,GB,CH\",\n        \"help\": \"Regions where non-essential consent defaults to DENIED (opt-in). Default is EEA + UK + CH. Leave EMPTY to apply the denied defaults to ALL regions (required for a Google certification / audit test site, which must have Consent Mode enabled everywhere).\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      },\n      {\n        \"type\": \"RADIO\",\n        \"name\": \"optOutDefault\",\n        \"displayName\": \"Default state for opt-out regions (outside the list above)\",\n        \"radioItems\": [\n          {\n            \"value\": \"granted\",\n            \"displayValue\": \"Granted (US-style opt-out: tags run until the visitor opts out)\"\n          },\n          {\n            \"value\": \"denied\",\n            \"displayValue\": \"Denied everywhere (opt-in globally)\"\n          }\n        ],\n        \"simpleValueType\": true,\n        \"defaultValue\": \"granted\",\n        \"help\": \"In opt-out regions (e.g. most US states) consent may default to granted. Ignored when the region list is empty (empty = denied for all regions).\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"waitForUpdate\",\n        \"displayName\": \"Wait for update (milliseconds)\",\n        \"simpleValueType\": true,\n        \"defaultValue\": 500,\n        \"valueValidators\": [\n          {\n            \"type\": \"POSITIVE_NUMBER\"\n          }\n        ],\n        \"help\": \"How long Google tags hold before firing, to give the banner time to emit a consent update. 500ms is Google's recommended value.\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"honorGpc\",\n        \"checkboxText\": \"Honor Global Privacy Control (GPC)\",\n        \"simpleValueType\": true,\n        \"defaultValue\": true,\n        \"help\": \"When the banner reports a GPC signal (in the consent event or cookie), force ad and analytics purposes to denied.\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"adsDataRedaction\",\n        \"checkboxText\": \"Enable ads_data_redaction when ad_storage is denied\",\n        \"simpleValueType\": true,\n        \"defaultValue\": true,\n        \"help\": \"Redacts ad click identifiers in network requests while consent is denied. Recommended.\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"urlPassthrough\",\n        \"checkboxText\": \"Enable url_passthrough (pass ad click info through URLs when denied)\",\n        \"simpleValueType\": true,\n        \"defaultValue\": false,\n        \"help\": \"Passes gclid / dclid / other ad identifiers via URL params so conversions still model when storage is denied.\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"advancedGroup\",\n    \"displayName\": \"Advanced\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"bannerBaseUrl\",\n        \"displayName\": \"Banner base URL\",\n        \"simpleValueType\": true,\n        \"defaultValue\": \"https://api-prod.cptn.co\",\n        \"valueValidators\": [\n          {\n            \"type\": \"NON_EMPTY\"\n          }\n        ],\n        \"help\": \"Base URL that serves the Captain Compliance banner script. Change only for staging or self-hosted deployments. The banner is loaded from <base>/banner/script?accessToken=...\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"dataLayerEventName\",\n        \"displayName\": \"Consent dataLayer event name\",\n        \"simpleValueType\": true,\n        \"defaultValue\": \"captainComplianceConsent\",\n        \"help\": \"The dataLayer event the banner pushes when consent is set or changed.\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"consentCookieName\",\n        \"displayName\": \"Consent cookie name\",\n        \"simpleValueType\": true,\n        \"defaultValue\": \"cc_consent_preference\",\n        \"help\": \"Cookie the banner writes the consent JSON to (status + selectedCookies map). Read as a fallback to the dataLayer event.\"\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableTcf\",\n        \"checkboxText\": \"Enable IAB TCF integration\",\n        \"simpleValueType\": true,\n        \"defaultValue\": false,\n        \"help\": \"OFF by default. Captain Compliance runs Google Consent Mode, not IAB TCF. Only enable if your ad-tech vendors require a TC string and your Captain Compliance property is configured for TCF.\"\n      }\n    ]\n  }\n]\n\n\n___SANDBOXED_JS_FOR_WEB_TEMPLATE___\n\n/*\n © 2024-2026 Captain Compliance\n www.captaincompliance.com\n\n Consent-Mode-native GTM template:\n 1. setDefaultConsentState (region-scoped, non-essential denied by default)\n 2. injectScript the Captain Compliance banner (loads the CMP UI + geo/GPC)\n 3. updateConsentState from the captainComplianceConsent event / cookie\n*/\n\nconst log = require('logToConsole');\nconst injectScript = require('injectScript');\nconst encode = require('encodeUriComponent');\nconst makeInteger = require('makeInteger');\nconst JSON = require('JSON');\nconst getCookieValues = require('getCookieValues');\nconst copyFromDataLayer = require('copyFromDataLayer');\nconst addConsentListener = require('addConsentListener');\nconst setDefaultConsentState = require('setDefaultConsentState');\nconst updateConsentState = require('updateConsentState');\nconst gtmOnSuccess = data.gtmOnSuccess;\nconst gtmOnFailure = data.gtmOnFailure;\n\n// ---- config ----------------------------------------------------------------\nconst baseUrl = (data.bannerBaseUrl || 'https://api-prod.cptn.co').replace(/\\/+$/, '');\nconst eventName = data.dataLayerEventName || 'captainComplianceConsent';\nconst cookieName = data.consentCookieName || 'cc_consent_preference';\nconst enableConsentMode = data.enableConsentMode !== false;\nconst honorGpc = data.honorGpc !== false;\n\n// Captain Compliance category -> Google Consent Mode v2 signals.\nconst AD_SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization', 'personalization_storage'];\nconst ANALYTICS_SIGNALS = ['analytics_storage'];\nconst FUNCTIONALITY_SIGNALS = ['functionality_storage'];\n\n// ---- 1. default consent state ---------------------------------------------\nif (enableConsentMode) {\n  const optOutDefault = data.optOutDefault === 'denied' ? 'denied' : 'granted';\n\n  // Parse the consent-required region list. Empty => apply denied to ALL regions.\n  let regions = [];\n  if (data.requiredRegions) {\n    regions = data.requiredRegions.split(',').map(function (r) {\n      return r.trim();\n    }).filter(function (r) {\n      return r.length > 0;\n    });\n  }\n  const allRegions = regions.length === 0;\n\n  const waitMs = makeInteger(data.waitForUpdate) || 500;\n\n  // Consent-required regions: everything non-essential DENIED.\n  const deniedDefault = {\n    ad_storage: 'denied',\n    ad_user_data: 'denied',\n    ad_personalization: 'denied',\n    analytics_storage: 'denied',\n    functionality_storage: 'denied',\n    personalization_storage: 'denied',\n    security_storage: 'granted',\n    wait_for_update: waitMs\n  };\n  if (!allRegions) {\n    deniedDefault.region = regions;\n  }\n  setDefaultConsentState(deniedDefault);\n\n  // Opt-out regions (everything not in the list) get the configured default.\n  // Only emit when we actually have a scoped list; empty list already covers all.\n  if (!allRegions && optOutDefault === 'granted') {\n    setDefaultConsentState({\n      ad_storage: 'granted',\n      ad_user_data: 'granted',\n      ad_personalization: 'granted',\n      analytics_storage: 'granted',\n      functionality_storage: 'granted',\n      personalization_storage: 'granted',\n      security_storage: 'granted'\n      // no region key => applies to all OTHER regions not covered above\n      // GTM merges: the region-scoped denied default above wins in-region.\n    });\n  }\n\n  if (data.adsDataRedaction) {\n    // Signalled to Google tags via gtag; exposed for completeness.\n    log('[CaptainCompliance] ads_data_redaction requested (configure on the Google tag).');\n  }\n  if (data.urlPassthrough) {\n    log('[CaptainCompliance] url_passthrough requested (configure on the Google tag).');\n  }\n}\n\n// ---- consent mapping helpers ----------------------------------------------\nfunction applyGrant(signals, state, granted) {\n  for (let i = 0; i < signals.length; i++) {\n    state[signals[i]] = granted ? 'granted' : 'denied';\n  }\n}\n\n// Read consent from the dataLayer event payload, falling back to the cookie.\nfunction readSelectedCookies(eventData) {\n  if (eventData && eventData.selectedCookies) {\n    return eventData.selectedCookies;\n  }\n  const raw = getCookieValues(cookieName);\n  if (raw && raw.length) {\n    const parsed = JSON.parse(raw[0]);\n    if (parsed && parsed.selectedCookies) {\n      return parsed.selectedCookies;\n    }\n  }\n  return null;\n}\n\nfunction readGpc(eventData) {\n  if (eventData && (eventData.gpc === true || eventData.globalPrivacyControl === true)) {\n    return true;\n  }\n  const raw = getCookieValues(cookieName);\n  if (raw && raw.length) {\n    const parsed = JSON.parse(raw[0]);\n    if (parsed && (parsed.gpc === true || parsed.globalPrivacyControl === true)) {\n      return true;\n    }\n  }\n  return false;\n}\n\nfunction pushUpdate(eventData) {\n  if (!enableConsentMode) return;\n  const selected = readSelectedCookies(eventData);\n  if (!selected) return;\n\n  const perf = selected.PERFORMANCE_COOKIES === true;\n  let targeting = selected.TARGETING_COOKIES === true;\n  const functionality = selected.FUNCTIONALITY_COOKIES === true;\n\n  // Honor GPC: force ad/analytics purposes denied when a GPC signal is present.\n  const gpc = honorGpc && readGpc(eventData);\n\n  const update = { security_storage: 'granted' };\n  applyGrant(ANALYTICS_SIGNALS, update, perf && !gpc);\n  applyGrant(AD_SIGNALS, update, targeting && !gpc);\n  applyGrant(FUNCTIONALITY_SIGNALS, update, functionality);\n\n  updateConsentState(update);\n  log('[CaptainCompliance] updateConsentState', update);\n}\n\n// ---- 3. update consent on banner event / listener -------------------------\nif (enableConsentMode) {\n  // Fire once for consent that already exists at container load.\n  const existing = copyFromDataLayer(eventName);\n  if (existing) {\n    pushUpdate(existing);\n  } else {\n    pushUpdate(null); // try the cookie\n  }\n\n  // React to later consent changes pushed by the banner.\n  addConsentListener('ad_storage', function () {\n    pushUpdate(copyFromDataLayer(eventName));\n  });\n}\n\n// ---- 2. inject the Captain Compliance banner (loads early) ----------------\nconst bannerUrl = baseUrl + '/banner/script?accessToken=' + encode(data.accessToken);\ninjectScript(bannerUrl, gtmOnSuccess, gtmOnFailure, 'ccBanner');\n\n\n___WEB_PERMISSIONS___\n\n[\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"logging\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"environments\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"debug\"\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"inject_script\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"urls\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"https://api-prod.cptn.co/*\"\n              },\n              {\n                \"type\": 1,\n                \"string\": \"https://*.cptn.co/*\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"access_consent\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"consentTypes\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"ad_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"ad_user_data\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"ad_personalization\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"analytics_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"functionality_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"personalization_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"security_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"read_data_layer\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"keyPatterns\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"captainComplianceConsent\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"get_cookies\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"cookieAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"cookieNames\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"cc_consent_preference\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  }\n]\n\n\n___TESTS___\n\nscenarios:\n- name: Default consent state is set (denied by default) on init\n  code: |-\n    const mockData = {\n      accessToken: 'test-token-uuid',\n      enableConsentMode: true,\n      requiredRegions: 'DE,FR,GB',\n      optOutDefault: 'granted',\n      waitForUpdate: 500,\n      honorGpc: true,\n      bannerBaseUrl: 'https://api-prod.cptn.co',\n      dataLayerEventName: 'captainComplianceConsent',\n      consentCookieName: 'cc_consent_preference'\n    };\n    let defaultCalls = [];\n    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });\n    mock('injectScript', function (url, onSuccess) { onSuccess(); });\n    runCode(mockData);\n    assertThat(defaultCalls.length).isGreaterThan(0);\n    const denied = defaultCalls[0];\n    assertThat(denied.ad_storage).isEqualTo('denied');\n    assertThat(denied.analytics_storage).isEqualTo('denied');\n    assertThat(denied.ad_user_data).isEqualTo('denied');\n    assertThat(denied.ad_personalization).isEqualTo('denied');\n    assertThat(denied.security_storage).isEqualTo('granted');\n    assertThat(denied.region).isEqualTo(['DE', 'FR', 'GB']);\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Empty region list applies denied defaults to all regions\n  code: |-\n    const mockData = {\n      accessToken: 'test-token-uuid',\n      enableConsentMode: true,\n      requiredRegions: '',\n      optOutDefault: 'granted',\n      waitForUpdate: 500,\n      bannerBaseUrl: 'https://api-prod.cptn.co',\n      dataLayerEventName: 'captainComplianceConsent',\n      consentCookieName: 'cc_consent_preference'\n    };\n    let defaultCalls = [];\n    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });\n    mock('injectScript', function (url, onSuccess) { onSuccess(); });\n    runCode(mockData);\n    assertThat(defaultCalls.length).isEqualTo(1);\n    assertThat(defaultCalls[0].region).isUndefined();\n    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');\n- name: Banner script is injected with the access token\n  code: |-\n    const mockData = {\n      accessToken: 'abc-123',\n      enableConsentMode: false,\n      bannerBaseUrl: 'https://api-prod.cptn.co',\n      dataLayerEventName: 'captainComplianceConsent',\n      consentCookieName: 'cc_consent_preference'\n    };\n    let injectedUrl;\n    mock('injectScript', function (url, onSuccess) { injectedUrl = url; onSuccess(); });\n    runCode(mockData);\n    assertThat(injectedUrl).isEqualTo('https://api-prod.cptn.co/banner/script?accessToken=abc-123');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Consent update flips all four purposes on grant\n  code: |-\n    const mockData = {\n      accessToken: 'test-token-uuid',\n      enableConsentMode: true,\n      requiredRegions: 'DE',\n      optOutDefault: 'granted',\n      waitForUpdate: 500,\n      honorGpc: true,\n      bannerBaseUrl: 'https://api-prod.cptn.co',\n      dataLayerEventName: 'captainComplianceConsent',\n      consentCookieName: 'cc_consent_preference'\n    };\n    mock('setDefaultConsentState', function () {});\n    mock('injectScript', function (url, onSuccess) { onSuccess(); });\n    mock('copyFromDataLayer', function () {\n      return { selectedCookies: {\n        PERFORMANCE_COOKIES: true,\n        TARGETING_COOKIES: true,\n        FUNCTIONALITY_COOKIES: true\n      }};\n    });\n    let updates = [];\n    mock('updateConsentState', function (state) { updates.push(state); });\n    runCode(mockData);\n    assertThat(updates.length).isGreaterThan(0);\n    const u = updates[0];\n    assertThat(u.ad_storage).isEqualTo('granted');\n    assertThat(u.ad_user_data).isEqualTo('granted');\n    assertThat(u.ad_personalization).isEqualTo('granted');\n    assertThat(u.analytics_storage).isEqualTo('granted');\n    assertThat(u.functionality_storage).isEqualTo('granted');\n- name: GPC signal forces ad and analytics denied even when granted\n  code: |-\n    const mockData = {\n      accessToken: 'test-token-uuid',\n      enableConsentMode: true,\n      requiredRegions: 'DE',\n      optOutDefault: 'granted',\n      waitForUpdate: 500,\n      honorGpc: true,\n      bannerBaseUrl: 'https://api-prod.cptn.co',\n      dataLayerEventName: 'captainComplianceConsent',\n      consentCookieName: 'cc_consent_preference'\n    };\n    mock('setDefaultConsentState', function () {});\n    mock('injectScript', function (url, onSuccess) { onSuccess(); });\n    mock('copyFromDataLayer', function () {\n      return { gpc: true, selectedCookies: {\n        PERFORMANCE_COOKIES: true,\n        TARGETING_COOKIES: true,\n        FUNCTIONALITY_COOKIES: true\n      }};\n    });\n    let updates = [];\n    mock('updateConsentState', function (state) { updates.push(state); });\n    runCode(mockData);\n    const u = updates[0];\n    assertThat(u.ad_storage).isEqualTo('denied');\n    assertThat(u.analytics_storage).isEqualTo('denied');\n    assertThat(u.ad_user_data).isEqualTo('denied');\n    assertThat(u.functionality_storage).isEqualTo('granted');\n\n\n___NOTES___\n\nCreated on 6/26/2024, 11:38:20 AM\nRewritten 2026 for native Google Consent Mode v2 (default + update, region-scoped),\nplus the Captain Compliance banner injector. See README.md and INSTALL.md.\n",
+        "fingerprint": "0"
+      }
+    ],
+    "fingerprint": "0",
+    "tagManagerUrl": ""
+  }
+}
