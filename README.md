@@ -18,6 +18,12 @@ template does what Google's certified-CMP / Consent Mode audit requires:
    Captain Compliance's categories to Google's signals, and calls
    `updateConsentState` so all four purposes flip correctly. GPC is honored.
 
+> **Two surfaces, one system.** This tag template steers **Google** tags via
+> Consent Mode. To gate **any other** tag (non-Google pixels, custom HTML,
+> third-party vendors) by consent category, use the **`Captain*` variables**
+> described in [Gating any tag by category](#gating-any-tag-by-category) below.
+> Both come pre-wired in the [one-file cutover container](#one-file-install-the-cutover-container).
+
 ## Category mapping
 
 Captain Compliance uses three consent categories; Google Consent Mode v2 uses
@@ -63,6 +69,51 @@ Set the tag to fire on **Consent Initialization - All Pages** (or, if that
 trigger is unavailable, **All Pages / Initialization**) so the default consent
 state is set before every other Google tag. The template also registers a
 consent listener, so it reacts to later banner changes without re-firing.
+
+## Gating any tag by category
+
+Consent Mode only steers Google tags. To hold **any** tag (a Meta pixel, a
+custom HTML tag, a third-party vendor) until the visitor consents to the right
+category, gate it on a trigger condition using the **`Captain*` variables**.
+These read the banner's `cc_consent_preference` cookie / `captainComplianceConsent`
+dataLayer event and expose consent as GTM variables you can reference anywhere:
+
+| Variable | Type | What it returns |
+|----------|------|-----------------|
+| `CaptainCookie` | 1st-party cookie | raw `cc_consent_preference` value |
+| `CaptainCookieParsed` | custom JS | the parsed consent object |
+| `CaptainConsentStatus` | custom JS | `accepted` / `rejected` / `undefined` (no choice yet) |
+| `CaptainPerformance` | data layer | `true` when Performance/analytics is consented |
+| `CaptainTargeting` | data layer | `true` when Targeting/ads is consented |
+| `CaptainFunctionality` | data layer | `true` when Functionality is consented |
+| `CaptainPerformancePassive` / `…TargetingPassive` / `…FunctionalityPassive` | custom JS | category state **including** the pre-interaction default; GPC-aware (returns `false` under GPC) |
+| `CaptainOptInRegion` | custom JS | `true` when the visitor is in a consent-required (opt-in) region |
+| `CaptainGPCSignalDetected` | custom JS | `true` when a Global Privacy Control signal is present |
+| `CaptainConsentExistedAtPageLoad` | custom JS | `true` when a prior consent choice was already stored |
+| `CaptainTargeting (Active Accept)` | custom JS | `true` only on an explicit accept (not passive/implied) |
+
+Typical use: on your Meta pixel tag, add a trigger that fires only when
+`CaptainTargeting` equals `true`. The tag stays blocked until the visitor
+consents to targeting, and fires the moment they do.
+
+You do **not** need to hand-build these — they ship pre-wired in the cutover
+container below.
+
+## One-file install: the cutover container
+
+`cutover/captain-consent-cutover.container.json` is a GTM **container import**
+that installs the whole setup in one step, replacing the old copy-paste recipe:
+
+- every `Captain*` variable above (reconciled from production containers),
+- the consent-normalization tag (so the data-layer variables resolve),
+- **this template inlined** as the banner + Consent Mode tag,
+- clean triggers, with all site-specific loaders stripped out.
+
+Import it into a GTM workspace, paste your access token into the
+`Captain Compliance CMP - Banner + Consent Mode` tag, and you are fully cut over.
+See [`cutover/README.md`](cutover/README.md) for details, including the
+`CaptainOptInRegion` region list (shipped as an editable default — trim it to
+your own compliance posture).
 
 ## Testing
 
