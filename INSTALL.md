@@ -1,4 +1,4 @@
-# Install & Verify — Captain Compliance CMP GTM Template
+# Install & Verify: Captain Compliance CMP GTM Template
 
 Team instructions for importing, configuring, testing, and deploying the
 Consent-Mode-native Captain Compliance template.
@@ -71,7 +71,7 @@ All five scenarios (init defaults, all-regions, injection, update, GPC) pass.
 ## 4. Deploy for a real customer
 
 1. Confirm the correct **Access Token** and the region list is the real
-   consent-required set (not empty — empty is only for the audit test site).
+   consent-required set (not empty; empty is only for the audit test site).
 2. **Submit** the workspace changes → **Publish**.
 3. Smoke-test the live site with Tag Assistant one more time (steps in §3).
 
@@ -90,5 +90,5 @@ Publishing to the Community Template Gallery is **not** the same as importing th
    point it at the public repo.
 4. Google reviews the submission. For CMP certification, the audit site must
    have Consent Mode enabled for **all regions** (region list empty) and must
-   demonstrably set the four purposes on default and on update — which this
+   demonstrably set the four purposes on default and on update, which this
    template does.

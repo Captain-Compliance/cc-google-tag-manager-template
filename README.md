@@ -1,4 +1,4 @@
-# Captain Compliance CMP — GTM Community Template
+# Captain Compliance CMP: GTM Community Template
 
 A Google Tag Manager (Web) custom template that loads the Captain Compliance
 consent banner **and** natively powers **Google Consent Mode v2**.
@@ -9,8 +9,8 @@ template does what Google's certified-CMP / Consent Mode audit requires:
 1. On initialization it calls `setDefaultConsentState` with **all four required
    purposes** (`ad_storage`, `analytics_storage`, `ad_user_data`,
    `ad_personalization`) plus `functionality_storage`, `personalization_storage`
-   and `security_storage` — **denied by default** in consent-required regions,
-   region-scoped, with `wait_for_update` — **before** any Google tag fires.
+   and `security_storage`, **denied by default** in consent-required regions,
+   region-scoped, with `wait_for_update`, **before** any Google tag fires.
 2. It injects the Captain Compliance banner (`<base>/banner/script?accessToken=…`)
    early so the CMP UI, geo detection and GPC handling load.
 3. When the visitor makes a choice, it reads the `captainComplianceConsent`
@@ -40,7 +40,7 @@ seven signals. The template maps them like this:
 
 | Field | Default | Purpose |
 |-------|---------|---------|
-| **Access Token** (required) | — | Your Captain Compliance property UUID. The only field a typical install needs. |
+| **Access Token** (required) | none | Your Captain Compliance property UUID. The only field a typical install needs. |
 | Set Google Consent Mode default + update | on | Master switch for the native Consent Mode wiring. |
 | Consent-required regions | EEA + UK + CH ISO codes | Regions where non-essential defaults to denied (opt-in). **Empty = apply denied to all regions** (required for a certification/audit test site). |
 | Default state for opt-out regions | granted | US-style opt-out behavior outside the required list. |
@@ -96,7 +96,7 @@ Typical use: on your Meta pixel tag, add a trigger that fires only when
 `CaptainTargeting` equals `true`. The tag stays blocked until the visitor
 consents to targeting, and fires the moment they do.
 
-You do **not** need to hand-build these — they ship pre-wired in the cutover
+You do **not** need to hand-build these; they ship pre-wired in the cutover
 container below.
 
 ## One-file install: the cutover container
@@ -112,7 +112,7 @@ that installs the whole setup in one step, replacing the old copy-paste recipe:
 Import it into a GTM workspace, paste your access token into the
 `Captain Compliance CMP - Banner + Consent Mode` tag, and you are fully cut over.
 See [`cutover/README.md`](cutover/README.md) for details, including the
-`CaptainOptInRegion` region list (shipped as an editable default — trim it to
+`CaptainOptInRegion` region list (shipped as an editable default; trim it to
 your own compliance posture).
 
 ## Testing
