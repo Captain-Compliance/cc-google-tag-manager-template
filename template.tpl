@@ -64,12 +64,27 @@ ___TEMPLATE_PARAMETERS___
         "help": "When on, the tag calls setDefaultConsentState on load and updateConsentState when the visitor chooses. This is required to pass Google's certified-CMP / Consent Mode v2 audit."
       },
       {
-        "type": "TEXT",
-        "name": "requiredRegions",
-        "displayName": "Consent-required regions (ISO 3166 codes, comma separated)",
+        "type": "SELECT",
+        "name": "consentScope",
+        "displayName": "Consent scope",
+        "macrosInSelect": false,
+        "selectItems": [
+          {
+            "value": "regions",
+            "displayValue": "Opt-in in specific regions, opt-out elsewhere (recommended)"
+          },
+          {
+            "value": "global_optin",
+            "displayValue": "Opt-in everywhere (deny non-essential until consent)"
+          },
+          {
+            "value": "global_optout",
+            "displayValue": "Opt-out everywhere (allow until the visitor opts out)"
+          }
+        ],
         "simpleValueType": true,
-        "defaultValue": "AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SI,ES,SE,IS,LI,NO,GB,CH",
-        "help": "Regions where non-essential consent defaults to DENIED (opt-in). Default is EEA + UK + CH. Leave EMPTY to apply the denied defaults to ALL regions (required for a Google certification / audit test site, which must have Consent Mode enabled everywhere).",
+        "defaultValue": "regions",
+        "help": "How the pre-consent default is applied. Specific regions denies non-essential storage in the listed regions and allows it everywhere else (the EEA opt-in / US opt-out split). Opt-in everywhere denies until the visitor consents (use this for a Google certification / audit test site, or a globally strict site). Opt-out everywhere allows until the visitor opts out. Per-category behaviour comes from the banner and, for individual tags, from Google tag consent settings and triggers.",
         "enablingConditions": [
           {
             "paramName": "enableConsentMode",
@@ -79,26 +94,21 @@ ___TEMPLATE_PARAMETERS___
         ]
       },
       {
-        "type": "RADIO",
-        "name": "optOutDefault",
-        "displayName": "Default state for opt-out regions (outside the list above)",
-        "radioItems": [
-          {
-            "value": "granted",
-            "displayValue": "Granted (US-style opt-out: tags run until the visitor opts out)"
-          },
-          {
-            "value": "denied",
-            "displayValue": "Denied everywhere (opt-in globally)"
-          }
-        ],
+        "type": "TEXT",
+        "name": "requiredRegions",
+        "displayName": "Consent-required regions (ISO 3166 codes, comma separated)",
         "simpleValueType": true,
-        "defaultValue": "granted",
-        "help": "In opt-out regions (e.g. most US states) consent may default to granted. Ignored when the region list is empty (empty = denied for all regions).",
+        "defaultValue": "AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SI,ES,SE,IS,LI,NO,GB,CH",
+        "help": "Regions where non-essential consent defaults to DENIED (opt-in), as ISO 3166-1 alpha-2 codes. Default is EEA + UK + CH. Everywhere outside this list defaults to granted (opt-out). Shown only when Consent scope is set to specific regions.",
         "enablingConditions": [
           {
             "paramName": "enableConsentMode",
             "paramValue": true,
+            "type": "EQUALS"
+          },
+          {
+            "paramName": "consentScope",
+            "paramValue": "regions",
             "type": "EQUALS"
           }
         ]
@@ -264,22 +274,10 @@ const FUNCTIONALITY_SIGNALS = ['functionality_storage'];
 
 // ---- 1. default consent state ---------------------------------------------
 if (enableConsentMode) {
-  const optOutDefault = data.optOutDefault === 'denied' ? 'denied' : 'granted';
-
-  // Parse the consent-required region list. Empty => apply denied to ALL regions.
-  let regions = [];
-  if (data.requiredRegions) {
-    regions = data.requiredRegions.split(',').map(function (r) {
-      return r.trim();
-    }).filter(function (r) {
-      return r.length > 0;
-    });
-  }
-  const allRegions = regions.length === 0;
-
+  const scope = data.consentScope || 'regions';
   const waitMs = makeInteger(data.waitForUpdate) || 500;
 
-  // Consent-required regions: everything non-essential DENIED.
+  // Non-essential storage denied; essential (security) always granted.
   const deniedDefault = {
     ad_storage: 'denied',
     ad_user_data: 'denied',
@@ -290,25 +288,42 @@ if (enableConsentMode) {
     security_storage: 'granted',
     wait_for_update: waitMs
   };
-  if (!allRegions) {
-    deniedDefault.region = regions;
-  }
-  setDefaultConsentState(deniedDefault);
+  const grantedDefault = {
+    ad_storage: 'granted',
+    ad_user_data: 'granted',
+    ad_personalization: 'granted',
+    analytics_storage: 'granted',
+    functionality_storage: 'granted',
+    personalization_storage: 'granted',
+    security_storage: 'granted'
+  };
 
-  // Opt-out regions (everything not in the list) get the configured default.
-  // Only emit when we actually have a scoped list; empty list already covers all.
-  if (!allRegions && optOutDefault === 'granted') {
-    setDefaultConsentState({
-      ad_storage: 'granted',
-      ad_user_data: 'granted',
-      ad_personalization: 'granted',
-      analytics_storage: 'granted',
-      functionality_storage: 'granted',
-      personalization_storage: 'granted',
-      security_storage: 'granted'
-      // no region key => applies to all OTHER regions not covered above
-      // GTM merges: the region-scoped denied default above wins in-region.
-    });
+  if (scope === 'global_optout') {
+    // Allow everywhere until the visitor opts out (US-style).
+    setDefaultConsentState(grantedDefault);
+  } else if (scope === 'global_optin') {
+    // Deny non-essential everywhere until the visitor consents.
+    setDefaultConsentState(deniedDefault);
+  } else {
+    // Specific regions: deny in the listed regions, allow elsewhere.
+    let regions = [];
+    if (data.requiredRegions) {
+      regions = data.requiredRegions.split(',').map(function (r) {
+        return r.trim();
+      }).filter(function (r) {
+        return r.length > 0;
+      });
+    }
+    if (regions.length === 0) {
+      // Region mode with no regions listed: fall back to deny everywhere.
+      setDefaultConsentState(deniedDefault);
+    } else {
+      deniedDefault.region = regions;
+      setDefaultConsentState(deniedDefault);
+      // Everything outside the listed regions is granted (opt-out). The
+      // region-scoped denied default above wins inside the listed regions.
+      setDefaultConsentState(grantedDefault);
+    }
   }
 
   if (data.adsDataRedaction) {
@@ -756,13 +771,13 @@ ___WEB_PERMISSIONS___
 ___TESTS___
 
 scenarios:
-- name: Default consent state is set (denied by default) on init
+- name: Region mode denies in listed regions and grants elsewhere
   code: |-
     const mockData = {
       accessToken: 'test-token-uuid',
       enableConsentMode: true,
+      consentScope: 'regions',
       requiredRegions: 'DE,FR,GB',
-      optOutDefault: 'granted',
       waitForUpdate: 500,
       honorGpc: true,
       bannerBaseUrl: 'https://api-prod.cptn.co',
@@ -773,7 +788,7 @@ scenarios:
     mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
     mock('injectScript', function (url, onSuccess) { onSuccess(); });
     runCode(mockData);
-    assertThat(defaultCalls.length).isGreaterThan(0);
+    assertThat(defaultCalls.length).isEqualTo(2);
     const denied = defaultCalls[0];
     assertThat(denied.ad_storage).isEqualTo('denied');
     assertThat(denied.analytics_storage).isEqualTo('denied');
@@ -781,14 +796,16 @@ scenarios:
     assertThat(denied.ad_personalization).isEqualTo('denied');
     assertThat(denied.security_storage).isEqualTo('granted');
     assertThat(denied.region).isEqualTo(['DE', 'FR', 'GB']);
+    const elsewhere = defaultCalls[1];
+    assertThat(elsewhere.region).isUndefined();
+    assertThat(elsewhere.analytics_storage).isEqualTo('granted');
     assertApi('gtmOnSuccess').wasCalled();
-- name: Empty region list applies denied defaults to all regions
+- name: Global opt-in denies non-essential in all regions
   code: |-
     const mockData = {
       accessToken: 'test-token-uuid',
       enableConsentMode: true,
-      requiredRegions: '',
-      optOutDefault: 'granted',
+      consentScope: 'global_optin',
       waitForUpdate: 500,
       bannerBaseUrl: 'https://api-prod.cptn.co',
       dataLayerEventName: 'captainComplianceConsent',
@@ -801,6 +818,27 @@ scenarios:
     assertThat(defaultCalls.length).isEqualTo(1);
     assertThat(defaultCalls[0].region).isUndefined();
     assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].security_storage).isEqualTo('granted');
+- name: Global opt-out grants all in all regions
+  code: |-
+    const mockData = {
+      accessToken: 'test-token-uuid',
+      enableConsentMode: true,
+      consentScope: 'global_optout',
+      waitForUpdate: 500,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].region).isUndefined();
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('granted');
 - name: Banner script is injected with the access token
   code: |-
     const mockData = {
@@ -820,8 +858,8 @@ scenarios:
     const mockData = {
       accessToken: 'test-token-uuid',
       enableConsentMode: true,
+      consentScope: 'regions',
       requiredRegions: 'DE',
-      optOutDefault: 'granted',
       waitForUpdate: 500,
       honorGpc: true,
       bannerBaseUrl: 'https://api-prod.cptn.co',
@@ -852,8 +890,8 @@ scenarios:
     const mockData = {
       accessToken: 'test-token-uuid',
       enableConsentMode: true,
+      consentScope: 'regions',
       requiredRegions: 'DE',
-      optOutDefault: 'granted',
       waitForUpdate: 500,
       honorGpc: true,
       bannerBaseUrl: 'https://api-prod.cptn.co',

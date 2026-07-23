@@ -70,8 +70,9 @@ All five scenarios (init defaults, all-regions, injection, update, GPC) pass.
 
 ## 4. Deploy for a real customer
 
-1. Confirm the correct **Access Token** and the region list is the real
-   consent-required set (not empty; empty is only for the audit test site).
+1. Confirm the correct **Access Token**, set **Consent scope** to "Opt-in in
+   specific regions", and edit **Consent-required regions** to the regions where
+   you require opt-in. For a globally strict site use "Opt-in everywhere" instead.
 2. **Submit** the workspace changes → **Publish**.
 3. Smoke-test the live site with Tag Assistant one more time (steps in §3).
 
@@ -88,7 +89,7 @@ Publishing to the Community Template Gallery is **not** the same as importing th
    `changeNotes` are current.
 3. Go to <https://tagmanager.google.com/gallery> → **Submit your template** and
    point it at the public repo.
-4. Google reviews the submission. For CMP certification, the audit site must
-   have Consent Mode enabled for **all regions** (region list empty) and must
-   demonstrably set the four purposes on default and on update, which this
+4. Google reviews the submission. For CMP certification, the audit site must run
+   Consent Mode in **all regions** (set **Consent scope** to "Opt-in everywhere")
+   and must demonstrably set the four purposes on default and on update, which this
    template does.

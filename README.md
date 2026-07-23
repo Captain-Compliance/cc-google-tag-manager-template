@@ -9,8 +9,9 @@ template does what Google's certified-CMP / Consent Mode audit requires:
 1. On initialization it calls `setDefaultConsentState` with **all four required
    purposes** (`ad_storage`, `analytics_storage`, `ad_user_data`,
    `ad_personalization`) plus `functionality_storage`, `personalization_storage`
-   and `security_storage`, **denied by default** in consent-required regions,
-   region-scoped, with `wait_for_update`, **before** any Google tag fires.
+   and `security_storage`, **denied by default** according to your chosen
+   [consent scope](#choosing-your-consent-scope), with `wait_for_update`,
+   **before** any Google tag fires.
 2. It injects the Captain Compliance banner (`<base>/banner/script?accessToken=…`)
    early so the CMP UI, geo detection and GPC handling load.
 3. When the visitor makes a choice, it reads the `captainComplianceConsent`
@@ -42,8 +43,8 @@ seven signals. The template maps them like this:
 |-------|---------|---------|
 | **Access Token** (required) | none | Your Captain Compliance property UUID. The only field a typical install needs. |
 | Set Google Consent Mode default + update | on | Master switch for the native Consent Mode wiring. |
-| Consent-required regions | EEA + UK + CH ISO codes | Regions where non-essential defaults to denied (opt-in). **Empty = apply denied to all regions** (required for a certification/audit test site). |
-| Default state for opt-out regions | granted | US-style opt-out behavior outside the required list. |
+| Consent scope | Opt-in in specific regions | How the pre-consent default is applied. See [Choosing your consent scope](#choosing-your-consent-scope). |
+| Consent-required regions | EEA + UK + CH ISO codes | Regions denied by default (opt-in); granted everywhere else. Shown only when scope is "specific regions". |
 | Wait for update (ms) | 500 | How long Google tags hold for the consent signal. |
 | Honor GPC | on | Force ad/analytics denied when a GPC signal is present. |
 | Enable ads_data_redaction | on | Redact ad identifiers while ad_storage is denied. |
@@ -52,6 +53,33 @@ seven signals. The template maps them like this:
 | Consent dataLayer event name (advanced) | `captainComplianceConsent` | The banner's consent event. |
 | Consent cookie name (advanced) | `cc_consent_preference` | Fallback consent source. |
 | Enable IAB TCF (advanced) | off | Only for vendors that need a TC string. Captain Compliance runs Consent Mode, not TCF, by default. |
+
+## Choosing your consent scope
+
+The **Consent scope** field controls the pre-consent default (`setDefaultConsentState`),
+the state that applies before the visitor makes a choice. Pick one of three modes:
+
+- **Opt-in in specific regions, opt-out elsewhere** (default, recommended). Non-essential
+  storage is **denied** in the regions you list (default EEA + UK + CH) and **granted**
+  everywhere else. This is the standard EEA-opt-in / US-opt-out setup. The
+  **Consent-required regions** field appears only in this mode; edit the list to match
+  the regions where you require opt-in.
+- **Opt-in everywhere**. Non-essential storage is **denied in every region** until the
+  visitor consents. Use this for a globally strict site, or for a **Google certification /
+  audit test site**, which must run Consent Mode everywhere. No region list is needed.
+- **Opt-out everywhere**. Everything is **granted** until the visitor opts out. Weakest
+  posture, only for cases with no opt-in requirement anywhere.
+
+To go global opt-in you now just pick "Opt-in everywhere". Do not clear the regions field
+to try to achieve it; the field carries a default and GTM re-populates it, so clearing is
+not a supported way to express intent.
+
+`security_storage` (strictly necessary) is always granted. Per-category behaviour after the
+visitor chooses comes from the banner's own categories, and for a single tag that needs
+bespoke gating you can add Google tag consent settings or a trigger condition. There is no
+per-category default in the template on purpose: defaulting a non-essential purpose to
+granted before consent is exactly what Consent Mode's default-denied is meant to prevent in
+opt-in regions.
 
 ## Permissions declared
 
