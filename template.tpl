@@ -244,7 +244,14 @@ const gtmOnSuccess = data.gtmOnSuccess;
 const gtmOnFailure = data.gtmOnFailure;
 
 // ---- config ----------------------------------------------------------------
-const baseUrl = (data.bannerBaseUrl || 'https://api-prod.cptn.co').replace(/\/+$/, '');
+// GTM's sandboxed JS does not support regex literals, so trim trailing
+// slashes with a small loop instead of .replace(/\/+$/, '').
+const baseUrl = (function (url) {
+  while (url.charAt(url.length - 1) === '/') {
+    url = url.substring(0, url.length - 1);
+  }
+  return url;
+})(data.bannerBaseUrl || 'https://api-prod.cptn.co');
 const eventName = data.dataLayerEventName || 'captainComplianceConsent';
 const cookieName = data.consentCookieName || 'cc_consent_preference';
 const enableConsentMode = data.enableConsentMode !== false;
