@@ -227,6 +227,9 @@ norm.pop("monitoringMetadata", None)
 norm["paused"] = False
 # Rewire firing triggers: fire on the two raw consent events.
 norm["firingTriggerId"] = [trg_consent["triggerId"], trg_updated["triggerId"]]
+# Strictly necessary: the normalization tag surfaces consent for the Captain*
+# variables and must fire regardless of consent state.
+norm["consentSettings"] = {"consentStatus": "NOT_NEEDED"}
 
 # 5b. Our inlined template instance (Banner + Consent Mode).
 banner = {
@@ -240,7 +243,10 @@ banner = {
     "fingerprint": "0",
     "firingTriggerId": [trg_consent_init["triggerId"]],
     "tagFiringOption": "ONCE_PER_EVENT",
-    "consentSettings": {"consentStatus": "NOT_SET"},
+    # Strictly necessary: the CMP tag SETS consent, so it must fire before/
+    # without consent. NOT_NEEDED = "No additional consent required" so GTM
+    # never gates it on a consent state (which would deadlock the banner).
+    "consentSettings": {"consentStatus": "NOT_NEEDED"},
 }
 
 tags = [banner, norm]

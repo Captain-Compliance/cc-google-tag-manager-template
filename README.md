@@ -43,8 +43,8 @@ seven signals. The template maps them like this:
 |-------|---------|---------|
 | **Access Token** (required) | none | Your Captain Compliance property UUID. The only field a typical install needs. |
 | Set Google Consent Mode default + update | on | Master switch for the native Consent Mode wiring. |
-| Consent scope | Opt-in in specific regions | How the pre-consent default is applied. See [Choosing your consent scope](#choosing-your-consent-scope). |
-| Consent-required regions | EEA + UK + CH ISO codes | Regions denied by default (opt-in); granted everywhere else. Shown only when scope is "specific regions". |
+| Consent scope | Opt-In (Specified Regions Only) | How the pre-consent default is applied. Four modes, see [Choosing your consent scope](#choosing-your-consent-scope). |
+| Specified Regions (ISO 3166 codes, comma-separated) | blank | The regions the specified-region rule applies to. In opt-in mode they are denied (opt-in); in opt-out mode they are granted (opt-out). Blank denies everywhere. Shown for both specified-region modes. |
 | Wait for update (ms) | 500 | How long Google tags hold for the consent signal. |
 | Honor GPC | on | Force ad/analytics denied when a GPC signal is present. |
 | Enable ads_data_redaction | on | Redact ad identifiers while ad_storage is denied. |
@@ -57,22 +57,25 @@ seven signals. The template maps them like this:
 ## Choosing your consent scope
 
 The **Consent scope** field controls the pre-consent default (`setDefaultConsentState`),
-the state that applies before the visitor makes a choice. Pick one of three modes:
+the state that applies before the visitor makes a choice. Pick one of four modes:
 
-- **Opt-in in specific regions, opt-out elsewhere** (default, recommended). Non-essential
-  storage is **denied** in the regions you list (default EEA + UK + CH) and **granted**
-  everywhere else. This is the standard EEA-opt-in / US-opt-out setup. The
-  **Consent-required regions** field appears only in this mode; edit the list to match
-  the regions where you require opt-in.
-- **Opt-in everywhere**. Non-essential storage is **denied in every region** until the
+- **Opt-In (Specified Regions Only)** (recommended). Non-essential storage is **denied**
+  in the regions you list and **granted** everywhere else. This is the standard EEA-opt-in /
+  US-opt-out setup. Fill the **Specified Regions** field with the regions where you require opt-in.
+- **Opt-Out (Specified Regions Only)**. The inverse: non-essential storage is **granted**
+  (opt-out) in the regions you list and **denied** (opt-in) everywhere else. Use this to go
+  opt-in globally except a few opt-out regions, for example opt-in worldwide but opt-out in
+  the U.S. Put those opt-out regions in the **Specified Regions** field.
+- **Opt-In (Everywhere)**. Non-essential storage is **denied in every region** until the
   visitor consents. Use this for a globally strict site, or for a **Google certification /
   audit test site**, which must run Consent Mode everywhere. No region list is needed.
-- **Opt-out everywhere**. Everything is **granted** until the visitor opts out. Weakest
+- **Opt-Out (Everywhere)**. Everything is **granted** until the visitor opts out. Weakest
   posture, only for cases with no opt-in requirement anywhere.
 
-To go global opt-in you now just pick "Opt-in everywhere". Do not clear the regions field
-to try to achieve it; the field carries a default and GTM re-populates it, so clearing is
-not a supported way to express intent.
+The **Specified Regions** field is shared by both specified-region modes, so it has no
+default; enter the ISO 3166 codes for whichever rule you picked. Leaving it blank denies
+non-essential everywhere (safe fallback). To go fully global in either direction, pick one
+of the two "Everywhere" modes rather than clearing the region list.
 
 `security_storage` (strictly necessary) is always granted. Per-category behaviour after the
 visitor chooses comes from the banner's own categories, and for a single tag that needs

@@ -71,20 +71,24 @@ ___TEMPLATE_PARAMETERS___
         "selectItems": [
           {
             "value": "regions",
-            "displayValue": "Opt-in in specific regions, opt-out elsewhere (recommended)"
+            "displayValue": "Opt-In (Specified Regions Only) (recommended)"
+          },
+          {
+            "value": "regions_optout",
+            "displayValue": "Opt-Out (Specified Regions Only)"
           },
           {
             "value": "global_optin",
-            "displayValue": "Opt-in everywhere (deny non-essential until consent)"
+            "displayValue": "Opt-In (Everywhere)"
           },
           {
             "value": "global_optout",
-            "displayValue": "Opt-out everywhere (allow until the visitor opts out)"
+            "displayValue": "Opt-Out (Everywhere)"
           }
         ],
         "simpleValueType": true,
         "defaultValue": "regions",
-        "help": "How the pre-consent default is applied. Specific regions denies non-essential storage in the listed regions and allows it everywhere else (the EEA opt-in / US opt-out split). Opt-in everywhere denies until the visitor consents (use this for a Google certification / audit test site, or a globally strict site). Opt-out everywhere allows until the visitor opts out. Per-category behaviour comes from the banner and, for individual tags, from Google tag consent settings and triggers.",
+        "help": "How the pre-consent default is applied. Opt-In (Specified Regions Only) denies non-essential storage in the listed regions and allows it everywhere else (the EEA opt-in / US opt-out split). Opt-Out (Specified Regions Only) is the inverse: it allows non-essential storage in the listed regions (opt-out) and denies it everywhere else (opt-in) - use this to go opt-in globally except a few opt-out regions like the U.S. Opt-In (Everywhere) denies until the visitor consents (use this for a Google certification / audit test site, or a globally strict site). Opt-Out (Everywhere) allows until the visitor opts out. Per-category behaviour comes from the banner and, for individual tags, from Google tag consent settings and triggers.",
         "enablingConditions": [
           {
             "paramName": "enableConsentMode",
@@ -96,10 +100,10 @@ ___TEMPLATE_PARAMETERS___
       {
         "type": "TEXT",
         "name": "requiredRegions",
-        "displayName": "Consent-required regions (ISO 3166 codes, comma separated)",
+        "displayName": "Specified Regions (ISO 3166 codes, comma-separated)",
         "simpleValueType": true,
-        "defaultValue": "AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SI,ES,SE,IS,LI,NO,GB,CH",
-        "help": "Regions where non-essential consent defaults to DENIED (opt-in), as ISO 3166-1 alpha-2 codes. Default is EEA + UK + CH. Everywhere outside this list defaults to granted (opt-out). Shown only when Consent scope is set to specific regions.",
+        "defaultValue": "",
+        "help": "The regions the specified-region rule applies to, as ISO 3166-1 alpha-2 codes (e.g. US, GB, CA-QC), comma-separated. For Opt-In (Specified Regions Only) these are the regions where non-essential storage defaults to DENIED (opt-in); everywhere else defaults to granted (opt-out). For Opt-Out (Specified Regions Only) it is the inverse: these regions default to GRANTED (opt-out) and everywhere else defaults to denied (opt-in). Leave blank to deny non-essential everywhere. Region list reference: https://help.captaincompliance.com/en/articles/9755073",
         "enablingConditions": [
           {
             "paramName": "enableConsentMode",
@@ -108,8 +112,13 @@ ___TEMPLATE_PARAMETERS___
           },
           {
             "paramName": "consentScope",
-            "paramValue": "regions",
-            "type": "EQUALS"
+            "paramValue": "global_optin",
+            "type": "NOT_EQUALS"
+          },
+          {
+            "paramName": "consentScope",
+            "paramValue": "global_optout",
+            "type": "NOT_EQUALS"
           }
         ]
       },
@@ -304,6 +313,28 @@ if (enableConsentMode) {
   } else if (scope === 'global_optin') {
     // Deny non-essential everywhere until the visitor consents.
     setDefaultConsentState(deniedDefault);
+  } else if (scope === 'regions_optout') {
+    // Opt-out in the listed regions (granted there); opt-in everywhere else
+    // (denied). Inverse of the 'regions' branch below - use it to go opt-in
+    // globally except a few opt-out regions (e.g. the U.S.).
+    let optOutRegions = [];
+    if (data.requiredRegions) {
+      optOutRegions = data.requiredRegions.split(',').map(function (r) {
+        return r.trim();
+      }).filter(function (r) {
+        return r.length > 0;
+      });
+    }
+    if (optOutRegions.length === 0) {
+      // No opt-out regions listed: deny non-essential everywhere (opt-in).
+      setDefaultConsentState(deniedDefault);
+    } else {
+      grantedDefault.region = optOutRegions;
+      setDefaultConsentState(grantedDefault);
+      // Everything outside the listed regions is denied (opt-in). The
+      // region-scoped granted default above wins inside the listed regions.
+      setDefaultConsentState(deniedDefault);
+    }
   } else {
     // Specific regions: deny in the listed regions, allow elsewhere.
     let regions = [];
@@ -839,6 +870,34 @@ scenarios:
     assertThat(defaultCalls[0].region).isUndefined();
     assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
     assertThat(defaultCalls[0].analytics_storage).isEqualTo('granted');
+- name: Opt-out specific regions grants in-region and denies elsewhere
+  code: |-
+    const mockData = {
+      accessToken: 'test-token-uuid',
+      enableConsentMode: true,
+      consentScope: 'regions_optout',
+      requiredRegions: 'US',
+      waitForUpdate: 500,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(2);
+    const granted = defaultCalls[0];
+    assertThat(granted.region).isEqualTo(['US']);
+    assertThat(granted.ad_storage).isEqualTo('granted');
+    assertThat(granted.analytics_storage).isEqualTo('granted');
+    assertThat(granted.security_storage).isEqualTo('granted');
+    const rest = defaultCalls[1];
+    assertThat(rest.region).isUndefined();
+    assertThat(rest.ad_storage).isEqualTo('denied');
+    assertThat(rest.analytics_storage).isEqualTo('denied');
+    assertThat(rest.security_storage).isEqualTo('granted');
+    assertApi('gtmOnSuccess').wasCalled();
 - name: Banner script is injected with the access token
   code: |-
     const mockData = {
