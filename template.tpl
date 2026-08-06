@@ -255,7 +255,7 @@ const gtmOnFailure = data.gtmOnFailure;
 
 // ---- config ----------------------------------------------------------------
 // GTM's sandboxed JS does not support regex literals, so trim trailing
-// slashes with a small loop instead of .replace(/\/+$/, '').
+// slashes with a small loop (a regex-based strip fails the sandbox import).
 const baseUrl = (function (url) {
   while (url.charAt(url.length - 1) === '/') {
     url = url.substring(0, url.length - 1);
