@@ -1,6 +1,17 @@
-homepage: 'www.captaincompliance.com'
+homepage: 'https://captaincompliance.com'
 documentation: 'https://support.captaincompliance.com'
 versions:
   # latest version
-  - sha: 35624c667e01027cdb5e7d853f257b7acee8d4a9
-    changeNotes: Initial release
+  - sha: 89807d964e48f365c50a89e0029d0bec7d8f99e6
+    changeNotes: >-
+      Consent-Mode-native release. The template sets Google Consent Mode v2
+      default state (all non-essential purposes denied by default in
+      consent-required regions, region-scoped) before Google tags fire, injects
+      the Captain Compliance banner, and calls updateConsentState from the
+      captainComplianceConsent event / cc_consent_preference cookie so
+      ad_storage, analytics_storage, ad_user_data and ad_personalization flip on
+      the visitor's choice. Honors GPC. Adds configurable banner base URL,
+      region list, wait-for-update, and optional ads_data_redaction /
+      url_passthrough / IAB TCF toggles. Adds an opt-out consent-scope region
+      list, relabels the regions field, and marks the CMP tag strictly
+      necessary.
