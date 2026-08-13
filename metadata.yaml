@@ -15,3 +15,5 @@ versions:
       url_passthrough / IAB TCF toggles. Adds an opt-out consent-scope region
       list, relabels the regions field, and marks the CMP tag strictly
       necessary.
+  - sha: 35624c667e01027cdb5e7d853f257b7acee8d4a9
+    changeNotes: Initial release
