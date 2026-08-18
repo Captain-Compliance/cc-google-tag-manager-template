@@ -277,9 +277,12 @@ const enableConsentMode = data.enableConsentMode !== false;
 const honorGpc = data.honorGpc !== false;
 
 // Captain Compliance category -> Google Consent Mode v2 signals.
-const AD_SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization', 'personalization_storage'];
+// personalization_storage is a preferences/personalization signal (e.g. site
+// recommendations), NOT advertising - it follows the Functionality choice.
+// ad_personalization is the advertising one and stays with the ad signals.
+const AD_SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization'];
 const ANALYTICS_SIGNALS = ['analytics_storage'];
-const FUNCTIONALITY_SIGNALS = ['functionality_storage'];
+const FUNCTIONALITY_SIGNALS = ['functionality_storage', 'personalization_storage'];
 
 // ---- 1. default consent state ---------------------------------------------
 if (enableConsentMode) {
