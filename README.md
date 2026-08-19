@@ -167,16 +167,16 @@ here.
 
 ### Unreleased (next gallery version)
 
-- **Fix — region-scoped consent defaults.** The "Specified Regions" scopes
+- **Fix, region-scoped consent defaults.** The "Specified Regions" scopes
   (Opt-In and Opt-Out) now set the global default **first** and the
   region-specific override **last**, matching Google's resolution order. Before,
   the trailing global call clobbered the region rule, so the listed regions got
   the inverted default (e.g. Opt-Out regions were denied instead of granted). The
   "Everywhere" scopes were unaffected.
-- **Fix — `personalization_storage` mapping.** It now follows the **Functionality**
+- **Fix, `personalization_storage` mapping.** It now follows the **Functionality**
   choice, not Targeting/Ads. (`ad_personalization` remains the advertising signal.)
 
-### Consent-Mode-native release — `89807d96` (current gallery version)
+### Consent-Mode-native release (`89807d96`) (current gallery version)
 
 - Sets Google Consent Mode v2 default state (region-scoped) before Google tags
   fire, injects the Captain Compliance banner, and calls `updateConsentState`
@@ -187,7 +187,7 @@ here.
 - Consent scope selector (opt-in / opt-out, specified-regions / everywhere); CMP
   tag marked strictly necessary.
 
-### Initial release — `35624c66`
+### Initial release (`35624c66`)
 
 - First published Captain Compliance CMP template.
 

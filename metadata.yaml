@@ -1,7 +1,7 @@
 homepage: 'https://captaincompliance.com'
 documentation: 'https://help.captaincompliance.com'
 versions:
-  # Keep changeNotes to ONE short line each — the gallery mangles long/wrapped
+  # Keep changeNotes to ONE short line each; the gallery mangles long/wrapped
   # text. Full detail lives in the README changelog. Newest version first.
   - sha: 89807d964e48f365c50a89e0029d0bec7d8f99e6
     changeNotes: 'Consent-Mode-native CMP: Consent Mode v2 defaults, banner injection, GPC, consent-scope selector.'
