@@ -332,11 +332,14 @@ if (enableConsentMode) {
       // No opt-out regions listed: deny non-essential everywhere (opt-in).
       setDefaultConsentState(deniedDefault);
     } else {
+      // Global default FIRST, region-specific override LAST. Google resolves
+      // each region to its most-specific default and a later region-scoped
+      // call must win over the earlier global one, so deny globally first,
+      // then grant the listed (opt-out) regions. (Doing region-first then a
+      // global call last let the global default clobber the region rule.)
+      setDefaultConsentState(deniedDefault);
       grantedDefault.region = optOutRegions;
       setDefaultConsentState(grantedDefault);
-      // Everything outside the listed regions is denied (opt-in). The
-      // region-scoped granted default above wins inside the listed regions.
-      setDefaultConsentState(deniedDefault);
     }
   } else {
     // Specific regions: deny in the listed regions, allow elsewhere.
@@ -352,11 +355,12 @@ if (enableConsentMode) {
       // Region mode with no regions listed: fall back to deny everywhere.
       setDefaultConsentState(deniedDefault);
     } else {
+      // Global default FIRST, region-specific override LAST (see regions_optout
+      // above): grant everywhere, then deny the listed (opt-in) regions so the
+      // region rule wins there and the global grant holds elsewhere.
+      setDefaultConsentState(grantedDefault);
       deniedDefault.region = regions;
       setDefaultConsentState(deniedDefault);
-      // Everything outside the listed regions is granted (opt-out). The
-      // region-scoped denied default above wins inside the listed regions.
-      setDefaultConsentState(grantedDefault);
     }
   }
 
@@ -823,16 +827,17 @@ scenarios:
     mock('injectScript', function (url, onSuccess) { onSuccess(); });
     runCode(mockData);
     assertThat(defaultCalls.length).isEqualTo(2);
-    const denied = defaultCalls[0];
+    // Global default first (grant everywhere), then the region-specific deny.
+    const elsewhere = defaultCalls[0];
+    assertThat(elsewhere.region).isUndefined();
+    assertThat(elsewhere.analytics_storage).isEqualTo('granted');
+    const denied = defaultCalls[1];
     assertThat(denied.ad_storage).isEqualTo('denied');
     assertThat(denied.analytics_storage).isEqualTo('denied');
     assertThat(denied.ad_user_data).isEqualTo('denied');
     assertThat(denied.ad_personalization).isEqualTo('denied');
     assertThat(denied.security_storage).isEqualTo('granted');
     assertThat(denied.region).isEqualTo(['DE', 'FR', 'GB']);
-    const elsewhere = defaultCalls[1];
-    assertThat(elsewhere.region).isUndefined();
-    assertThat(elsewhere.analytics_storage).isEqualTo('granted');
     assertApi('gtmOnSuccess').wasCalled();
 - name: Global opt-in denies non-essential in all regions
   code: |-
@@ -890,16 +895,17 @@ scenarios:
     mock('injectScript', function (url, onSuccess) { onSuccess(); });
     runCode(mockData);
     assertThat(defaultCalls.length).isEqualTo(2);
-    const granted = defaultCalls[0];
-    assertThat(granted.region).isEqualTo(['US']);
-    assertThat(granted.ad_storage).isEqualTo('granted');
-    assertThat(granted.analytics_storage).isEqualTo('granted');
-    assertThat(granted.security_storage).isEqualTo('granted');
-    const rest = defaultCalls[1];
+    // Global default first (deny everywhere), then grant the listed opt-out region.
+    const rest = defaultCalls[0];
     assertThat(rest.region).isUndefined();
     assertThat(rest.ad_storage).isEqualTo('denied');
     assertThat(rest.analytics_storage).isEqualTo('denied');
     assertThat(rest.security_storage).isEqualTo('granted');
+    const granted = defaultCalls[1];
+    assertThat(granted.region).isEqualTo(['US']);
+    assertThat(granted.ad_storage).isEqualTo('granted');
+    assertThat(granted.analytics_storage).isEqualTo('granted');
+    assertThat(granted.security_storage).isEqualTo('granted');
     assertApi('gtmOnSuccess').wasCalled();
 - name: Banner script is injected with the access token
   code: |-
