@@ -33,8 +33,8 @@ seven signals. The template maps them like this:
 | Captain Compliance category | Google Consent Mode signal(s) |
 |-----------------------------|-------------------------------|
 | `PERFORMANCE_COOKIES`       | `analytics_storage` |
-| `TARGETING_COOKIES`         | `ad_storage`, `ad_user_data`, `ad_personalization`, `personalization_storage` |
-| `FUNCTIONALITY_COOKIES`     | `functionality_storage` |
+| `TARGETING_COOKIES`         | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| `FUNCTIONALITY_COOKIES`     | `functionality_storage`, `personalization_storage` |
 | `STRICTLY_NECESSARY_COOKIES`| `security_storage` (always granted) |
 
 ## Fields
