@@ -165,7 +165,7 @@ Versions match the `metadata.yaml` gallery entries, newest first. The gallery's
 "Change Notes" are kept to one line each (it mangles long text); the detail is
 here.
 
-### Unreleased (next gallery version)
+### Consent Mode correctness fixes (current gallery version)
 
 - **Fix, region-scoped consent defaults.** The "Specified Regions" scopes
   (Opt-In and Opt-Out) now set the global default **first** and the
@@ -176,7 +176,7 @@ here.
 - **Fix, `personalization_storage` mapping.** It now follows the **Functionality**
   choice, not Targeting/Ads. (`ad_personalization` remains the advertising signal.)
 
-### Consent-Mode-native release (`89807d96`) (current gallery version)
+### Consent-Mode-native release (`89807d96`)
 
 - Sets Google Consent Mode v2 default state (region-scoped) before Google tags
   fire, injects the Captain Compliance banner, and calls `updateConsentState`
