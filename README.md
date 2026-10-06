@@ -46,7 +46,8 @@ seven signals. The template maps them like this:
 | Consent scope | Opt-In (Specified Regions Only) | How the pre-consent default is applied. Four modes, see [Choosing your consent scope](#choosing-your-consent-scope). |
 | Specified Regions (ISO 3166 codes, comma-separated) | blank | The regions the specified-region rule applies to. In opt-in mode they are denied (opt-in); in opt-out mode they are granted (opt-out). Blank denies everywhere. Shown for both specified-region modes. |
 | Wait for update (ms) | 500 | How long Google tags hold for the consent signal. |
-| Honor GPC | on | Force ad/analytics denied when a GPC signal is present. |
+| Honor GPC | on | Deny ads, analytics and functionality when a GPC signal is present, matching the banner. |
+| GPC signal variable | blank | A variable returning `navigator.globalPrivacyControl`, so GPC applies at Consent Initialization. GTM templates cannot read `navigator` themselves. Create a Custom JavaScript variable: `function() { return navigator.globalPrivacyControl === true; }`. The cutover container ships it as `{{CaptainGPCSignalDetected}}`. Blank means GPC only applies once the banner loads. |
 | Enable ads_data_redaction | on | Redact ad identifiers while ad_storage is denied. |
 | Enable url_passthrough | off | Pass ad click info via URL params when storage is denied. |
 | Banner base URL (advanced) | `https://api-prod.cptn.co` | Override for staging / self-host. |
@@ -92,8 +93,6 @@ opt-in regions.
 - `inject_script` limited to `https://api-prod.cptn.co/*` and `https://*.cptn.co/*`.
 - `read_data_layer` for `captainComplianceConsent`.
 - `get_cookies` for `cc_consent_preference`.
-- `access_globals` (read only) for `navigator.globalPrivacyControl`, so GPC
-  applies at Consent Initialization instead of waiting for the banner script.
 - `logging` (debug environment).
 
 ## How it should fire
@@ -169,8 +168,10 @@ here.
 
 ### Unreleased: GPC at Consent Initialization
 
-- **Fix, GPC timing.** The template now reads `navigator.globalPrivacyControl`
-  itself at Consent Initialization. Before, GPC was only applied once the banner
+- **Fix, GPC timing.** The template now takes the browser's GPC signal at
+  Consent Initialization through the new **GPC signal variable** field (GTM
+  templates cannot read `navigator`, so a Custom JavaScript variable supplies
+  it). Before, GPC was only applied once the banner
   script loaded or a consent cookie existed, so on a first visit tags firing
   before Container Loaded still saw the regional default (granted in opt-out
   regions). With GPC on, the template sets one global denied default (no region
@@ -179,7 +180,11 @@ here.
 - **Fix, GPC scope.** GPC now also denies `functionality_storage` and
   `personalization_storage`, matching the banner, which locks Targeting,
   Performance and Functionality off while the signal is on.
-- New permission: read `navigator.globalPrivacyControl`.
+- No new permissions.
+- **Cutover container refreshed.** It still embedded the August template, from
+  before the region-ordering fix, so a workspace set up from it had opt-out
+  regions denied. It now embeds this version and wires
+  `{{CaptainGPCSignalDetected}}` into the GPC signal variable field.
 
 ### Consent Mode correctness fixes (`e74e1448`)
 
