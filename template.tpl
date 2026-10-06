@@ -158,6 +158,20 @@ ___TEMPLATE_PARAMETERS___
         ]
       },
       {
+        "type": "TEXT",
+        "name": "gpcSignal",
+        "displayName": "GPC signal variable",
+        "simpleValueType": true,
+        "help": "Select a variable that returns true when the browser sends Global Privacy Control, e.g. a Custom JavaScript variable: function() { return navigator.globalPrivacyControl === true; }. GTM templates cannot read the navigator object, so this is what lets GPC apply at Consent Initialization. Without it, GPC only applies once the banner script loads.",
+        "enablingConditions": [
+          {
+            "paramName": "honorGpc",
+            "paramValue": true,
+            "type": "EQUALS"
+          }
+        ]
+      },
+      {
         "type": "CHECKBOX",
         "name": "adsDataRedaction",
         "checkboxText": "Enable ads_data_redaction when ad_storage is denied",
@@ -256,7 +270,6 @@ const makeInteger = require('makeInteger');
 const JSON = require('JSON');
 const getCookieValues = require('getCookieValues');
 const copyFromDataLayer = require('copyFromDataLayer');
-const copyFromWindow = require('copyFromWindow');
 const addConsentListener = require('addConsentListener');
 const setDefaultConsentState = require('setDefaultConsentState');
 const updateConsentState = require('updateConsentState');
@@ -277,10 +290,12 @@ const cookieName = data.consentCookieName || 'cc_consent_preference';
 const enableConsentMode = data.enableConsentMode !== false;
 const honorGpc = data.honorGpc !== false;
 
-// The browser's own GPC signal, read here at Consent Initialization. Waiting
-// for the banner script (injected below, loads async) meant GPC only applied
-// after Container Loaded, so tags on earlier triggers fired for GPC visitors.
-const browserGpc = honorGpc && copyFromWindow('navigator.globalPrivacyControl') === true;
+// The browser's own GPC signal at Consent Initialization. Waiting for the
+// banner script (injected below, loads async) meant GPC only applied after
+// Container Loaded, so tags on earlier triggers fired for GPC visitors. The
+// sandbox cannot read navigator, so it arrives through a GTM variable that
+// returns navigator.globalPrivacyControl (the "GPC signal variable" field).
+const browserGpc = honorGpc && (data.gpcSignal === true || data.gpcSignal === 'true');
 
 // Captain Compliance category -> Google Consent Mode v2 signals.
 // personalization_storage is a preferences/personalization signal (e.g. site
@@ -820,67 +835,6 @@ ___WEB_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
-  },
-  {
-    "instance": {
-      "key": {
-        "publicId": "access_globals",
-        "versionId": "1"
-      },
-      "param": [
-        {
-          "key": "keys",
-          "value": {
-            "type": 2,
-            "listItem": [
-              {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "key"
-                  },
-                  {
-                    "type": 1,
-                    "string": "read"
-                  },
-                  {
-                    "type": 1,
-                    "string": "write"
-                  },
-                  {
-                    "type": 1,
-                    "string": "execute"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
-                    "string": "navigator.globalPrivacyControl"
-                  },
-                  {
-                    "type": 8,
-                    "boolean": true
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "clientAnnotations": {
-      "isEditedByUser": true
-    },
-    "isRequired": true
   }
 ]
 
@@ -1072,13 +1026,11 @@ scenarios:
       requiredRegions: 'CA-QC',
       waitForUpdate: 500,
       honorGpc: true,
+      gpcSignal: true,
       bannerBaseUrl: 'https://api-prod.cptn.co',
       dataLayerEventName: 'captainComplianceConsent',
       consentCookieName: 'cc_consent_preference'
     };
-    mock('copyFromWindow', function (key) {
-      return key === 'navigator.globalPrivacyControl' ? true : undefined;
-    });
     let defaultCalls = [];
     mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
     mock('injectScript', function (url, onSuccess) { onSuccess(); });
@@ -1103,13 +1055,11 @@ scenarios:
       consentScope: 'global_optout',
       waitForUpdate: 500,
       honorGpc: true,
+      gpcSignal: 'true',
       bannerBaseUrl: 'https://api-prod.cptn.co',
       dataLayerEventName: 'captainComplianceConsent',
       consentCookieName: 'cc_consent_preference'
     };
-    mock('copyFromWindow', function (key) {
-      return key === 'navigator.globalPrivacyControl' ? true : undefined;
-    });
     mock('getCookieValues', function () {
       return ['{"selectedCookies":{"PERFORMANCE_COOKIES":true,"TARGETING_COOKIES":true,"FUNCTIONALITY_COOKIES":true}}'];
     });
@@ -1132,11 +1082,11 @@ scenarios:
       consentScope: 'global_optout',
       waitForUpdate: 500,
       honorGpc: false,
+      gpcSignal: true,
       bannerBaseUrl: 'https://api-prod.cptn.co',
       dataLayerEventName: 'captainComplianceConsent',
       consentCookieName: 'cc_consent_preference'
     };
-    mock('copyFromWindow', function () { return true; });
     let defaultCalls = [];
     mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
     mock('injectScript', function (url, onSuccess) { onSuccess(); });

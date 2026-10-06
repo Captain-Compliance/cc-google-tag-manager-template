@@ -31,6 +31,11 @@ The template now appears under **Tag Templates**.
      the audit site).
    - Leave **Set Google Consent Mode**, **Honor GPC**, **wait_for_update = 500**
      at defaults.
+   - **GPC signal variable**: create a Custom JavaScript variable named
+     `CaptainGPCSignalDetected` with
+     `function() { return navigator.globalPrivacyControl === true; }` and select
+     it here. Without it GPC only applies once the banner loads. (The cutover
+     container already includes it.)
    - **Advanced** → only change **Banner base URL** for staging/self-host.
 3. **Triggering**: fire on **Consent Initialization - All Pages**. This
    guarantees `setDefaultConsentState` runs before every Google tag. (If that
