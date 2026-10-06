@@ -256,6 +256,7 @@ const makeInteger = require('makeInteger');
 const JSON = require('JSON');
 const getCookieValues = require('getCookieValues');
 const copyFromDataLayer = require('copyFromDataLayer');
+const copyFromWindow = require('copyFromWindow');
 const addConsentListener = require('addConsentListener');
 const setDefaultConsentState = require('setDefaultConsentState');
 const updateConsentState = require('updateConsentState');
@@ -275,6 +276,11 @@ const eventName = data.dataLayerEventName || 'captainComplianceConsent';
 const cookieName = data.consentCookieName || 'cc_consent_preference';
 const enableConsentMode = data.enableConsentMode !== false;
 const honorGpc = data.honorGpc !== false;
+
+// The browser's own GPC signal, read here at Consent Initialization. Waiting
+// for the banner script (injected below, loads async) meant GPC only applied
+// after Container Loaded, so tags on earlier triggers fired for GPC visitors.
+const browserGpc = honorGpc && copyFromWindow('navigator.globalPrivacyControl') === true;
 
 // Captain Compliance category -> Google Consent Mode v2 signals.
 // personalization_storage is a preferences/personalization signal (e.g. site
@@ -310,7 +316,13 @@ if (enableConsentMode) {
     security_storage: 'granted'
   };
 
-  if (scope === 'global_optout') {
+  if (browserGpc) {
+    // GPC means "reject all non-essential" while the signal is on, wherever the
+    // visitor is, matching the banner (it locks Targeting, Performance and
+    // Functionality off under GPC). One global denied default, no region
+    // grants, so no region rule can grant ahead of the banner.
+    setDefaultConsentState(deniedDefault);
+  } else if (scope === 'global_optout') {
     // Allow everywhere until the visitor opts out (US-style).
     setDefaultConsentState(grantedDefault);
   } else if (scope === 'global_optin') {
@@ -396,6 +408,9 @@ function readSelectedCookies(eventData) {
 }
 
 function readGpc(eventData) {
+  if (browserGpc) {
+    return true;
+  }
   if (eventData && (eventData.gpc === true || eventData.globalPrivacyControl === true)) {
     return true;
   }
@@ -412,19 +427,22 @@ function readGpc(eventData) {
 function pushUpdate(eventData) {
   if (!enableConsentMode) return;
   const selected = readSelectedCookies(eventData);
-  if (!selected) return;
+  // Under GPC there is nothing to wait for: everything non-essential is denied
+  // whatever is (or is not) stored.
+  if (!selected && !(honorGpc && readGpc(eventData))) return;
 
-  const perf = selected.PERFORMANCE_COOKIES === true;
-  let targeting = selected.TARGETING_COOKIES === true;
-  const functionality = selected.FUNCTIONALITY_COOKIES === true;
+  const perf = !!selected && selected.PERFORMANCE_COOKIES === true;
+  const targeting = !!selected && selected.TARGETING_COOKIES === true;
+  const functionality = !!selected && selected.FUNCTIONALITY_COOKIES === true;
 
-  // Honor GPC: force ad/analytics purposes denied when a GPC signal is present.
+  // Honor GPC the way the banner does: Targeting, Performance and
+  // Functionality all denied while the signal is present.
   const gpc = honorGpc && readGpc(eventData);
 
   const update = { security_storage: 'granted' };
   applyGrant(ANALYTICS_SIGNALS, update, perf && !gpc);
   applyGrant(AD_SIGNALS, update, targeting && !gpc);
-  applyGrant(FUNCTIONALITY_SIGNALS, update, functionality);
+  applyGrant(FUNCTIONALITY_SIGNALS, update, functionality && !gpc);
 
   updateConsentState(update);
   log('[CaptainCompliance] updateConsentState', update);
@@ -802,6 +820,67 @@ ___WEB_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "access_globals",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "keys",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "navigator.globalPrivacyControl"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   }
 ]
 
@@ -953,7 +1032,7 @@ scenarios:
     assertThat(u.ad_personalization).isEqualTo('granted');
     assertThat(u.analytics_storage).isEqualTo('granted');
     assertThat(u.functionality_storage).isEqualTo('granted');
-- name: GPC signal forces ad and analytics denied even when granted
+- name: GPC in the event payload denies ads, analytics and functionality even when granted
   code: |-
     const mockData = {
       accessToken: 'test-token-uuid',
@@ -982,7 +1061,87 @@ scenarios:
     assertThat(u.ad_storage).isEqualTo('denied');
     assertThat(u.analytics_storage).isEqualTo('denied');
     assertThat(u.ad_user_data).isEqualTo('denied');
-    assertThat(u.functionality_storage).isEqualTo('granted');
+    assertThat(u.functionality_storage).isEqualTo('denied');
+    assertThat(u.personalization_storage).isEqualTo('denied');
+- name: Browser GPC at consent init sets one global denied default in region mode
+  code: |-
+    const mockData = {
+      accessToken: 'test-token-uuid',
+      enableConsentMode: true,
+      consentScope: 'regions',
+      requiredRegions: 'CA-QC',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('copyFromWindow', function (key) {
+      return key === 'navigator.globalPrivacyControl' ? true : undefined;
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    // No region-scoped grant ahead of the banner: a single global deny.
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].region).isUndefined();
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].functionality_storage).isEqualTo('denied');
+    // Applied immediately, with no stored choice and before the banner loads.
+    assertThat(updates.length).isGreaterThan(0);
+    assertThat(updates[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].analytics_storage).isEqualTo('denied');
+- name: Browser GPC overrides a stored allow-all cookie at consent init
+  code: |-
+    const mockData = {
+      accessToken: 'test-token-uuid',
+      enableConsentMode: true,
+      consentScope: 'global_optout',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('copyFromWindow', function (key) {
+      return key === 'navigator.globalPrivacyControl' ? true : undefined;
+    });
+    mock('getCookieValues', function () {
+      return ['{"selectedCookies":{"PERFORMANCE_COOKIES":true,"TARGETING_COOKIES":true,"FUNCTIONALITY_COOKIES":true}}'];
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    // Opt-out scope would grant by default; GPC must deny instead.
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].analytics_storage).isEqualTo('denied');
+    assertThat(updates[0].functionality_storage).isEqualTo('denied');
+- name: Honor GPC off ignores the browser signal
+  code: |-
+    const mockData = {
+      accessToken: 'test-token-uuid',
+      enableConsentMode: true,
+      consentScope: 'global_optout',
+      waitForUpdate: 500,
+      honorGpc: false,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('copyFromWindow', function () { return true; });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
 
 
 ___NOTES___
