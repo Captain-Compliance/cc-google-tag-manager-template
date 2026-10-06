@@ -92,6 +92,8 @@ opt-in regions.
 - `inject_script` limited to `https://api-prod.cptn.co/*` and `https://*.cptn.co/*`.
 - `read_data_layer` for `captainComplianceConsent`.
 - `get_cookies` for `cc_consent_preference`.
+- `access_globals` (read only) for `navigator.globalPrivacyControl`, so GPC
+  applies at Consent Initialization instead of waiting for the banner script.
 - `logging` (debug environment).
 
 ## How it should fire
@@ -165,7 +167,21 @@ Versions match the `metadata.yaml` gallery entries, newest first. The gallery's
 "Change Notes" are kept to one line each (it mangles long text); the detail is
 here.
 
-### Consent Mode correctness fixes (current gallery version)
+### Unreleased: GPC at Consent Initialization
+
+- **Fix, GPC timing.** The template now reads `navigator.globalPrivacyControl`
+  itself at Consent Initialization. Before, GPC was only applied once the banner
+  script loaded or a consent cookie existed, so on a first visit tags firing
+  before Container Loaded still saw the regional default (granted in opt-out
+  regions). With GPC on, the template sets one global denied default (no region
+  grants) and pushes a denied update immediately, overriding a stored allow-all
+  cookie.
+- **Fix, GPC scope.** GPC now also denies `functionality_storage` and
+  `personalization_storage`, matching the banner, which locks Targeting,
+  Performance and Functionality off while the signal is on.
+- New permission: read `navigator.globalPrivacyControl`.
+
+### Consent Mode correctness fixes (`e74e1448`)
 
 - **Fix, region-scoped consent defaults.** The "Specified Regions" scopes
   (Opt-In and Opt-Out) now set the global default **first** and the
