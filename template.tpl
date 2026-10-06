@@ -70,8 +70,12 @@ ___TEMPLATE_PARAMETERS___
         "macrosInSelect": false,
         "selectItems": [
           {
+            "value": "captain",
+            "displayValue": "Use my Captain Compliance regions (recommended)"
+          },
+          {
             "value": "regions",
-            "displayValue": "Opt-In (Specified Regions Only) (recommended)"
+            "displayValue": "Opt-In (Specified Regions Only)"
           },
           {
             "value": "regions_optout",
@@ -87,8 +91,8 @@ ___TEMPLATE_PARAMETERS___
           }
         ],
         "simpleValueType": true,
-        "defaultValue": "regions",
-        "help": "How the pre-consent default is applied. Opt-In (Specified Regions Only) denies non-essential storage in the listed regions and allows it everywhere else (the EEA opt-in / US opt-out split). Opt-Out (Specified Regions Only) is the inverse: it allows non-essential storage in the listed regions (opt-out) and denies it everywhere else (opt-in) - use this to go opt-in globally except a few opt-out regions like the U.S. Opt-In (Everywhere) denies until the visitor consents (use this for a Google certification / audit test site, or a globally strict site). Opt-Out (Everywhere) allows until the visitor opts out. Per-category behaviour comes from the banner and, for individual tags, from Google tag consent settings and triggers.",
+        "defaultValue": "captain",
+        "help": "How the pre-consent default is applied. Use my Captain Compliance regions (recommended) takes each visitor's default from the region settings in your Captain Compliance dashboard, using our geolocation, so there is one region list to maintain and no second list here that Google matches against its own IP lookup. Opt-In (Specified Regions Only) denies non-essential storage in the listed regions and allows it everywhere else (the EEA opt-in / US opt-out split). Opt-Out (Specified Regions Only) is the inverse: it allows non-essential storage in the listed regions (opt-out) and denies it everywhere else (opt-in) - use this to go opt-in globally except a few opt-out regions like the U.S. Opt-In (Everywhere) denies until the visitor consents (use this for a Google certification / audit test site, or a globally strict site). Opt-Out (Everywhere) allows until the visitor opts out. Per-category behaviour comes from the banner and, for individual tags, from Google tag consent settings and triggers.",
         "enablingConditions": [
           {
             "paramName": "enableConsentMode",
@@ -118,6 +122,11 @@ ___TEMPLATE_PARAMETERS___
           {
             "paramName": "consentScope",
             "paramValue": "global_optout",
+            "type": "NOT_EQUALS"
+          },
+          {
+            "paramName": "consentScope",
+            "paramValue": "captain",
             "type": "NOT_EQUALS"
           }
         ]
@@ -305,6 +314,16 @@ const AD_SIGNALS = ['ad_storage', 'ad_user_data', 'ad_personalization'];
 const ANALYTICS_SIGNALS = ['analytics_storage'];
 const FUNCTIONALITY_SIGNALS = ['functionality_storage', 'personalization_storage'];
 
+// cc_region_defaults is written by the edge consent-defaults script as e.g.
+// F1P1T0 (Functionality, Performance, Targeting). Anything else is ignored.
+function readRegionDefaults() {
+  const raw = getCookieValues('cc_region_defaults');
+  if (!raw || !raw.length) return null;
+  const v = raw[0];
+  if (v.length !== 6 || v.charAt(0) !== 'F' || v.charAt(2) !== 'P' || v.charAt(4) !== 'T') return null;
+  return { f: v.charAt(1) === '1', p: v.charAt(3) === '1', t: v.charAt(5) === '1' };
+}
+
 // ---- 1. default consent state ---------------------------------------------
 if (enableConsentMode) {
   const scope = data.consentScope || 'regions';
@@ -337,6 +356,33 @@ if (enableConsentMode) {
     // Functionality off under GPC). One global denied default, no region
     // grants, so no region rule can grant ahead of the banner.
     setDefaultConsentState(deniedDefault);
+  } else if (scope === 'captain') {
+    // One region list: the banner's own, resolved with our geolocation instead
+    // of Google's. The edge script stores this visitor's regional defaults in
+    // cc_region_defaults, so after the first page view they apply here
+    // synchronously. On the first page view, deny and let the edge script
+    // (injected below, a few hundred bytes) send the update while Google tags
+    // hold for wait_for_update.
+    const stored = readRegionDefaults();
+    if (stored) {
+      setDefaultConsentState({
+        ad_storage: stored.t ? 'granted' : 'denied',
+        ad_user_data: stored.t ? 'granted' : 'denied',
+        ad_personalization: stored.t ? 'granted' : 'denied',
+        analytics_storage: stored.p ? 'granted' : 'denied',
+        functionality_storage: stored.f ? 'granted' : 'denied',
+        personalization_storage: stored.f ? 'granted' : 'denied',
+        security_storage: 'granted'
+      });
+    } else {
+      setDefaultConsentState(deniedDefault);
+    }
+    injectScript(
+      baseUrl + '/banner/consent-defaults?access-token=' + encode(data.accessToken),
+      function () {},
+      function () { log('[CaptainCompliance] consent defaults could not load; denied default stands.'); },
+      'ccConsentDefaults'
+    );
   } else if (scope === 'global_optout') {
     // Allow everywhere until the visitor opts out (US-style).
     setDefaultConsentState(grantedDefault);
@@ -825,6 +871,10 @@ ___WEB_PERMISSIONS___
               {
                 "type": 1,
                 "string": "cc_consent_preference"
+              },
+              {
+                "type": 1,
+                "string": "cc_region_defaults"
               }
             ]
           }
@@ -1092,6 +1142,97 @@ scenarios:
     mock('injectScript', function (url, onSuccess) { onSuccess(); });
     runCode(mockData);
     assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
+
+- name: Captain regions with no stored defaults denies and loads the edge consent defaults first
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    let injected = [];
+    mock('injectScript', function (url, onSuccess) { injected.push(url); if (onSuccess) onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].region).isUndefined();
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].wait_for_update).isEqualTo(500);
+    // Edge consent defaults before the banner.
+    assertThat(injected[0]).isEqualTo('https://api-prod.cptn.co/banner/consent-defaults?access-token=tok-1');
+    assertThat(injected[1]).isEqualTo('https://api-prod.cptn.co/banner/script?accessToken=tok-1');
+- name: Captain regions applies stored regional defaults synchronously
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      return name === 'cc_region_defaults' ? ['F1P0T1'] : [];
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].functionality_storage).isEqualTo('granted');
+- name: Captain regions ignores a malformed stored value
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      return name === 'cc_region_defaults' ? ['granted'] : [];
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+- name: Captain regions with GPC stays denied whatever the stored region says
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      gpcSignal: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      return name === 'cc_region_defaults' ? ['F1P1T1'] : [];
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('denied');
 
 
 ___NOTES___

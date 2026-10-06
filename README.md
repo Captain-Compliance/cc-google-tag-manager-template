@@ -43,7 +43,7 @@ seven signals. The template maps them like this:
 |-------|---------|---------|
 | **Access Token** (required) | none | Your Captain Compliance property UUID. The only field a typical install needs. |
 | Set Google Consent Mode default + update | on | Master switch for the native Consent Mode wiring. |
-| Consent scope | Opt-In (Specified Regions Only) | How the pre-consent default is applied. Four modes, see [Choosing your consent scope](#choosing-your-consent-scope). |
+| Consent scope | Use my Captain Compliance regions | How the pre-consent default is applied. Five modes, see [Choosing your consent scope](#choosing-your-consent-scope). |
 | Specified Regions (ISO 3166 codes, comma-separated) | blank | The regions the specified-region rule applies to. In opt-in mode they are denied (opt-in); in opt-out mode they are granted (opt-out). Blank denies everywhere. Shown for both specified-region modes. |
 | Wait for update (ms) | 500 | How long Google tags hold for the consent signal. |
 | Honor GPC | on | Deny ads, analytics and functionality when a GPC signal is present, matching the banner. |
@@ -58,9 +58,19 @@ seven signals. The template maps them like this:
 ## Choosing your consent scope
 
 The **Consent scope** field controls the pre-consent default (`setDefaultConsentState`),
-the state that applies before the visitor makes a choice. Pick one of four modes:
+the state that applies before the visitor makes a choice. Pick one of five modes:
 
-- **Opt-In (Specified Regions Only)** (recommended). Non-essential storage is **denied**
+- **Use my Captain Compliance regions** (recommended). Each visitor's default comes from
+  the region settings in your Captain Compliance dashboard, resolved with **our**
+  geolocation, so there is one region list to maintain. With the other region modes you
+  keep a second list here, and Google matches it against its own IP lookup, which can
+  disagree with ours (we have seen it place a New Jersey server in Iran). How it works:
+  the tag denies by default and loads a few hundred bytes from our edge
+  (`/banner/consent-defaults`) that grants whatever your banner grants in that region,
+  while Google tags hold for **Wait for update**. It also stores that region's defaults
+  in a `cc_region_defaults` cookie for 30 minutes, so later page views apply them
+  instantly with no request. No region list needed.
+- **Opt-In (Specified Regions Only)**. Non-essential storage is **denied**
   in the regions you list and **granted** everywhere else. This is the standard EEA-opt-in /
   US-opt-out setup. Fill the **Specified Regions** field with the regions where you require opt-in.
 - **Opt-Out (Specified Regions Only)**. The inverse: non-essential storage is **granted**
@@ -92,7 +102,7 @@ opt-in regions.
   `personalization_storage`, `security_storage`.
 - `inject_script` limited to `https://api-prod.cptn.co/*` and `https://*.cptn.co/*`.
 - `read_data_layer` for `captainComplianceConsent`.
-- `get_cookies` for `cc_consent_preference`.
+- `get_cookies` for `cc_consent_preference` and `cc_region_defaults`.
 - `logging` (debug environment).
 
 ## How it should fire
@@ -165,6 +175,14 @@ GitHub repo + submission at <https://tagmanager.google.com/gallery>). See
 Versions match the `metadata.yaml` gallery entries, newest first. The gallery's
 "Change Notes" are kept to one line each (it mangles long text); the detail is
 here.
+
+### Unreleased: one region list
+
+- **New default scope, Use my Captain Compliance regions.** The tag takes each visitor's
+  default from the banner's own region settings via our edge, instead of a second region
+  list in GTM matched against Google's geolocation. Needs the `/banner/consent-defaults`
+  edge endpoint (cc-platform-api). Existing tags keep the scope they already have.
+- New cookie read: `cc_region_defaults`.
 
 ### Unreleased: GPC at Consent Initialization
 
