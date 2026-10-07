@@ -369,6 +369,26 @@
             "type": "TEMPLATE",
             "key": "gpcSignal",
             "value": "{{CaptainGPCSignalDetected}}"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "consentScope",
+            "value": "captain"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "enableConsentMode",
+            "value": "true"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "honorGpc",
+            "value": "true"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "waitForUpdate",
+            "value": "500"
           }
         ],
         "fingerprint": "0",
