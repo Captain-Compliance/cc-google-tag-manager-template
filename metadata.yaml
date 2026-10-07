@@ -3,6 +3,8 @@ documentation: 'https://help.captaincompliance.com'
 versions:
   # Keep changeNotes to ONE short line each; the gallery mangles long/wrapped
   # text. Full detail lives in the README changelog. Newest version first.
+  - sha: c8b340e0d6694286f5196bd599e1d73681ce44c3
+    changeNotes: 'Consent defaults can now come from your Captain Compliance regions; GPC applies at Consent Initialization.'
   - sha: e74e144802f92bc843d0b1634d81793d6566c1d2
     changeNotes: 'Fix: region-scoped consent defaults resolve correctly; personalization_storage follows Functionality.'
   - sha: 89807d964e48f365c50a89e0029d0bec7d8f99e6

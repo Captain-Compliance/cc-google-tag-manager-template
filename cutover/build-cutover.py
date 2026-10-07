@@ -237,8 +237,17 @@ banner = {
     "containerId": CONT,
     "name": "Captain Compliance CMP - Banner + Consent Mode",
     "type": CVT_TYPE,
+    # Every field written out, not just the ones being overridden. GTM omits
+    # unset fields on import and the template then falls back to its own
+    # defaults, so a tag carrying only accessToken ran the region-list scope
+    # with no regions (denied everywhere) instead of the banner's regions.
     "parameter": [
         {"type": "TEMPLATE", "key": "accessToken", "value": "PASTE-YOUR-CC-ACCESS-TOKEN"},
+        {"type": "TEMPLATE", "key": "gpcSignal", "value": "{{CaptainGPCSignalDetected}}"},
+        {"type": "TEMPLATE", "key": "consentScope", "value": "captain"},
+        {"type": "BOOLEAN", "key": "enableConsentMode", "value": "true"},
+        {"type": "BOOLEAN", "key": "honorGpc", "value": "true"},
+        {"type": "TEMPLATE", "key": "waitForUpdate", "value": "500"},
     ],
     "fingerprint": "0",
     "firingTriggerId": [trg_consent_init["triggerId"]],
