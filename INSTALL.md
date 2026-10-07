@@ -58,13 +58,18 @@ The template now appears under **Tag Templates**.
    - `security_storage` shows **granted**.
 3. Confirm the Captain Compliance banner renders and the network tab shows a
    request to `…/banner/script?accessToken=…`.
-4. Make a choice in the banner (Accept / customize). On the resulting
+4. On the **Use my Captain Compliance regions** scope, confirm the network tab also
+   shows `…/banner/consent-defaults?access-token=…`, that a `cc_region_defaults`
+   cookie is written, and that a `captainComplianceConsentReady` event lands in the
+   dataLayer. Consent-gated Google tags belong on that event, not on Initialization,
+   or they stay blocked for the first page view.
+5. Make a choice in the banner (Accept / customize). On the resulting
    `captainComplianceConsent` event, confirm the **Consent** tab now shows the
    updated (**granted** where accepted) values for all four purposes, and that
    the change was applied via `updateConsentState`.
-5. GPC check: load with a GPC-signalling browser/extension. Confirm ad and
+6. GPC check: load with a GPC-signalling browser/extension. Confirm ad and
    analytics purposes stay **denied** even after an "accept".
-6. Cross-check in the browser console: `google_tag_data.ics` reflects the same
+7. Cross-check in the browser console: `google_tag_data.ics` reflects the same
    grant/deny states, and the `cc_consent_preference` cookie holds the JSON with
    `selectedCookies`.
 
@@ -75,9 +80,10 @@ All five scenarios (init defaults, all-regions, injection, update, GPC) pass.
 
 ## 4. Deploy for a real customer
 
-1. Confirm the correct **Access Token**, set **Consent scope** to "Opt-in in
-   specific regions", and edit **Consent-required regions** to the regions where
-   you require opt-in. For a globally strict site use "Opt-in everywhere" instead.
+1. Confirm the correct **Access Token**. Leave **Consent scope** on "Use my
+   Captain Compliance regions" so the defaults come from the banner's own region
+   settings, or pick a specified-region scope and fill **Specified Regions**. For a
+   globally strict site use "Opt-In (Everywhere)" instead.
 2. **Submit** the workspace changes → **Publish**.
 3. Smoke-test the live site with Tag Assistant one more time (steps in §3).
 

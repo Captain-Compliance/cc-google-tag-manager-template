@@ -112,6 +112,16 @@ trigger is unavailable, **All Pages / Initialization**) so the default consent
 state is set before every other Google tag. The template also registers a
 consent listener, so it reacts to later banner changes without re-firing.
 
+With the **Use my Captain Compliance regions** scope, the first page view's real
+consent state arrives from our edge a moment after Consent Initialization. GTM
+checks a tag's additional consent once, when its trigger fires, and never
+retries, so a consent-gated Google tag on **Initialization** or **All Pages** can
+stay blocked for that whole page view. The edge pushes
+`captainComplianceConsentReady` as soon as the state is settled, including when it
+decides no update is needed, so fire those tags on a **Custom Event** trigger for
+`captainComplianceConsentReady` instead. The CMP tag itself stays on Consent
+Initialization.
+
 ## Gating any tag by category
 
 Consent Mode only steers Google tags. To hold **any** tag (a Meta pixel, a
@@ -176,15 +186,17 @@ Versions match the `metadata.yaml` gallery entries, newest first. The gallery's
 "Change Notes" are kept to one line each (it mangles long text); the detail is
 here.
 
-### Unreleased: one region list
+### One region list, and GPC at Consent Initialization (current gallery version)
 
 - **New default scope, Use my Captain Compliance regions.** The tag takes each visitor's
   default from the banner's own region settings via our edge, instead of a second region
   list in GTM matched against Google's geolocation. Needs the `/banner/consent-defaults`
   edge endpoint (cc-platform-api). Existing tags keep the scope they already have.
 - New cookie read: `cc_region_defaults`.
-
-### Unreleased: GPC at Consent Initialization
+- **Fire consent-gated Google tags on `captainComplianceConsentReady`.** The edge
+  pushes that event once the first page view's consent state is settled. GTM checks a
+  tag's additional consent only when its trigger fires, so a gated Google tag left on
+  Initialization or All Pages stays blocked for that whole page view.
 
 - **Fix, GPC timing.** The template now takes the browser's GPC signal at
   Consent Initialization through the new **GPC signal variable** field (GTM
