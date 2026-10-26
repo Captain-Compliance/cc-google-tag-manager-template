@@ -174,7 +174,9 @@ your own compliance posture).
 The template ships with `___TESTS___` scenarios covering: defaults set on init,
 empty-region (all regions) mode, banner injection, consent update flipping all
 four purposes, and the GPC path. Run them from the template editor's **Tests**
-tab. See `INSTALL.md` for end-to-end verification in Tag Assistant.
+tab, or locally with `node test/run-tests.js template.tpl` (add `--trace` to see
+every cookie read and consent call). See `INSTALL.md` for end-to-end verification
+in Tag Assistant.
 
 ## Gallery publication
 
