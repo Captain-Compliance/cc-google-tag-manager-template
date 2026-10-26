@@ -453,17 +453,35 @@ function applyGrant(signals, state, granted) {
   }
 }
 
-// Read consent from the dataLayer event payload, falling back to the cookie.
+// The preference cookie is host only unless the site is in a consent group, so
+// a choice made on www is not visible on the bare apex through it. The banner
+// also stores the choice in cc_local_consent (this host) and cc_global_consent
+// (root domain), so any non-empty one of the three counts as a stored choice,
+// the same test the edge consent-defaults script uses. Most specific first.
+const STORED_CONSENT_COOKIES = [cookieName, 'cc_local_consent', 'cc_global_consent'];
+
+// The stored choice as an object, or null when there is none. A non-empty
+// cookie that does not parse still counts as a choice, read as {} so nothing
+// non-essential is granted from it.
+function readStoredConsent() {
+  for (let i = 0; i < STORED_CONSENT_COOKIES.length; i++) {
+    const raw = getCookieValues(STORED_CONSENT_COOKIES[i]);
+    if (raw && raw.length && raw[0]) {
+      const parsed = JSON.parse(raw[0]);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    }
+  }
+  return null;
+}
+
+// Read consent from the dataLayer event payload, falling back to the cookies.
 function readSelectedCookies(eventData) {
   if (eventData && eventData.selectedCookies) {
     return eventData.selectedCookies;
   }
-  const raw = getCookieValues(cookieName);
-  if (raw && raw.length) {
-    const parsed = JSON.parse(raw[0]);
-    if (parsed && parsed.selectedCookies) {
-      return parsed.selectedCookies;
-    }
+  const stored = readStoredConsent();
+  if (stored) {
+    return stored.selectedCookies || {};
   }
   return null;
 }
@@ -475,12 +493,9 @@ function readGpc(eventData) {
   if (eventData && (eventData.gpc === true || eventData.globalPrivacyControl === true)) {
     return true;
   }
-  const raw = getCookieValues(cookieName);
-  if (raw && raw.length) {
-    const parsed = JSON.parse(raw[0]);
-    if (parsed && (parsed.gpc === true || parsed.globalPrivacyControl === true)) {
-      return true;
-    }
+  const stored = readStoredConsent();
+  if (stored && (stored.gpc === true || stored.globalPrivacyControl === true)) {
+    return true;
   }
   return false;
 }
@@ -874,6 +889,14 @@ ___WEB_PERMISSIONS___
               },
               {
                 "type": 1,
+                "string": "cc_local_consent"
+              },
+              {
+                "type": 1,
+                "string": "cc_global_consent"
+              },
+              {
+                "type": 1,
                 "string": "cc_region_defaults"
               }
             ]
@@ -1233,6 +1256,115 @@ scenarios:
     assertThat(defaultCalls.length).isEqualTo(1);
     assertThat(defaultCalls[0].ad_storage).isEqualTo('denied');
     assertThat(defaultCalls[0].analytics_storage).isEqualTo('denied');
+- name: A rejection stored only in cc_global_consent is applied over a granted region default
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    // Rejected on www; on the apex only the root-domain cookie is visible.
+    mock('getCookieValues', function (name) {
+      if (name === 'cc_region_defaults') return ['F1P1T1'];
+      if (name === 'cc_global_consent') {
+        return ['{"selectedCookies":{"PERFORMANCE_COOKIES":false,"TARGETING_COOKIES":false,"FUNCTIONALITY_COOKIES":false},"status":"REJECTED","source":"global"}'];
+      }
+      return [];
+    });
+    mock('setDefaultConsentState', function () {});
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    assertThat(updates.length).isEqualTo(1);
+    assertThat(updates[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].ad_user_data).isEqualTo('denied');
+    assertThat(updates[0].ad_personalization).isEqualTo('denied');
+    assertThat(updates[0].analytics_storage).isEqualTo('denied');
+    assertThat(updates[0].functionality_storage).isEqualTo('denied');
+    assertThat(updates[0].personalization_storage).isEqualTo('denied');
+- name: A choice stored only in cc_local_consent is applied
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'global_optout',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      if (name === 'cc_local_consent') {
+        return ['{"selectedCookies":{"PERFORMANCE_COOKIES":true,"TARGETING_COOKIES":false,"FUNCTIONALITY_COOKIES":false}}'];
+      }
+      return [];
+    });
+    mock('setDefaultConsentState', function () {});
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    assertThat(updates.length).isEqualTo(1);
+    assertThat(updates[0].analytics_storage).isEqualTo('granted');
+    assertThat(updates[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].functionality_storage).isEqualTo('denied');
+- name: A non-empty consent cookie without readable categories denies everything
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'global_optout',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      return name === 'cc_global_consent' ? ['not-json'] : [];
+    });
+    mock('setDefaultConsentState', function () {});
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    assertThat(updates.length).isEqualTo(1);
+    assertThat(updates[0].ad_storage).isEqualTo('denied');
+    assertThat(updates[0].analytics_storage).isEqualTo('denied');
+    assertThat(updates[0].functionality_storage).isEqualTo('denied');
+- name: No consent cookie at all keeps the region defaults and pushes no update
+  code: |-
+    const mockData = {
+      accessToken: 'tok-1',
+      enableConsentMode: true,
+      consentScope: 'captain',
+      waitForUpdate: 500,
+      honorGpc: true,
+      bannerBaseUrl: 'https://api-prod.cptn.co',
+      dataLayerEventName: 'captainComplianceConsent',
+      consentCookieName: 'cc_consent_preference'
+    };
+    mock('getCookieValues', function (name) {
+      return name === 'cc_region_defaults' ? ['F1P1T1'] : [];
+    });
+    let defaultCalls = [];
+    mock('setDefaultConsentState', function (state) { defaultCalls.push(state); });
+    mock('injectScript', function (url, onSuccess) { if (onSuccess) onSuccess(); });
+    let updates = [];
+    mock('updateConsentState', function (state) { updates.push(state); });
+    runCode(mockData);
+    assertThat(defaultCalls.length).isEqualTo(1);
+    assertThat(defaultCalls[0].ad_storage).isEqualTo('granted');
+    assertThat(defaultCalls[0].analytics_storage).isEqualTo('granted');
+    assertThat(defaultCalls[0].functionality_storage).isEqualTo('granted');
+    assertThat(updates.length).isEqualTo(0);
 
 
 ___NOTES___
