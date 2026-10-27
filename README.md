@@ -167,6 +167,12 @@ See [`cutover/README.md`](cutover/README.md) for details, including the
 `CaptainOptInRegion` region list (shipped as an editable default; trim it to
 your own compliance posture).
 
+## Platform guides
+
+- **UltraCart:** [`docs/ultracart.md`](docs/ultracart.md) covers the StoreFront
+  Tag Manager field, what to turn off so nothing loads outside the container,
+  checkout and the receipt page, and the test store checklist.
+
 ## Testing
 
 The template ships with `___TESTS___` scenarios covering: defaults set on init,
