@@ -11,7 +11,7 @@ comes from:
   <https://docs.ultracart.com/storefronts-themes/tracking-analytics/>
 - **[UC-GTM]** UltraCart, Integrating Google Tag Manager into Your UltraCart
   Storefront:
-  <https://docs.ultracart.com/account-settings/tutorials/google-integration/google-tag-manager>
+  <https://docs.ultracart.com/account-settings/tutorials/google-integration/google-tag-manager/>
 
 Section names in brackets after a link (for example "Tag Manager") are the
 heading on that page.
