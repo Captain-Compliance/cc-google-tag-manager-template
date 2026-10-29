@@ -15,7 +15,8 @@ template does what Google's certified-CMP / Consent Mode audit requires:
 2. It injects the Captain Compliance banner (`<base>/banner/script?accessToken=…`)
    early so the CMP UI, geo detection and GPC handling load.
 3. When the visitor makes a choice, it reads the `captainComplianceConsent`
-   dataLayer event (falling back to the `cc_consent_preference` cookie), maps
+   dataLayer event (falling back to the stored choice in `cc_consent_preference`,
+   `cc_local_consent` or `cc_global_consent`), maps
    Captain Compliance's categories to Google's signals, and calls
    `updateConsentState` so all four purposes flip correctly. GPC is honored.
 
@@ -52,7 +53,7 @@ seven signals. The template maps them like this:
 | Enable url_passthrough | off | Pass ad click info via URL params when storage is denied. |
 | Banner base URL (advanced) | `https://api-prod.cptn.co` | Override for staging / self-host. |
 | Consent dataLayer event name (advanced) | `captainComplianceConsent` | The banner's consent event. |
-| Consent cookie name (advanced) | `cc_consent_preference` | Fallback consent source. |
+| Consent cookie name (advanced) | `cc_consent_preference` | Fallback consent source. `cc_local_consent` and `cc_global_consent` are always read after it. |
 | Enable IAB TCF (advanced) | off | Only for vendors that need a TC string. Captain Compliance runs Consent Mode, not TCF, by default. |
 
 ## Choosing your consent scope
@@ -102,7 +103,8 @@ opt-in regions.
   `personalization_storage`, `security_storage`.
 - `inject_script` limited to `https://api-prod.cptn.co/*` and `https://*.cptn.co/*`.
 - `read_data_layer` for `captainComplianceConsent`.
-- `get_cookies` for `cc_consent_preference` and `cc_region_defaults`.
+- `get_cookies` for `cc_consent_preference`, `cc_local_consent`, `cc_global_consent`
+  and `cc_region_defaults`.
 - `logging` (debug environment).
 
 ## How it should fire
@@ -178,7 +180,9 @@ your own compliance posture).
 The template ships with `___TESTS___` scenarios covering: defaults set on init,
 empty-region (all regions) mode, banner injection, consent update flipping all
 four purposes, and the GPC path. Run them from the template editor's **Tests**
-tab. See `INSTALL.md` for end-to-end verification in Tag Assistant.
+tab, or locally with `node test/run-tests.js template.tpl` (add `--trace` to see
+every cookie read and consent call). See `INSTALL.md` for end-to-end verification
+in Tag Assistant.
 
 ## Gallery publication
 
@@ -191,6 +195,16 @@ GitHub repo + submission at <https://tagmanager.google.com/gallery>). See
 Versions match the `metadata.yaml` gallery entries, newest first. The gallery's
 "Change Notes" are kept to one line each (it mangles long text); the detail is
 here.
+
+### Stored choice on every host (not in the gallery yet)
+
+- **A choice made on another host is applied.** `cc_consent_preference` is host only
+  unless the site is in a consent group, so a visitor who rejected on `www` had no
+  preference cookie on the bare apex, and a granted region default stood. The tag now
+  treats any non-empty `cc_consent_preference`, `cc_local_consent` or `cc_global_consent`
+  as the stored choice (most specific first), the same test the edge consent-defaults
+  script uses. A non-empty value it cannot read denies everything non-essential.
+- New cookie reads: `cc_local_consent`, `cc_global_consent`. Cookie formats unchanged.
 
 ### One region list, and GPC at Consent Initialization (current gallery version)
 
