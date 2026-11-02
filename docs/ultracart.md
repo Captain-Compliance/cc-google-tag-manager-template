@@ -24,9 +24,10 @@ phases:
 1. **GTM template path (this guide).** The merchant's own GTM container,
    loaded by UltraCart's Tag Manager field, runs the community template. No
    code on UltraCart's side and nothing for us to host.
-2. **Later, if the template path holds up:** an UltraCart app that sets the
-   container and the privacy settings for the merchant through UltraCart's
-   OAuth developer apps. Not started, and not needed for phase 1.
+2. **The UltraCart installer app:** an OAuth app that installs the banner and
+   the container for the merchant, for an UltraCart listing. Decided Nov 1,
+   2026; planned in [`ultracart-app-plan.md`](ultracart-app-plan.md). This
+   guide stays as its fallback and its test checklist.
 
 Live clients use the community template from the Gallery, never an imported
 `.tpl` download. Only Gallery installs count for Google.
