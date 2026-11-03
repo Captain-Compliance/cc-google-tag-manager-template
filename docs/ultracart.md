@@ -26,7 +26,7 @@ phases:
    code on UltraCart's side and nothing for us to host.
 2. **The UltraCart installer app:** an OAuth app that installs the banner and
    the container for the merchant, for an UltraCart listing. Decided Nov 1,
-   2026; planned in [`ultracart-app-plan.md`](ultracart-app-plan.md). This
+   2026; planned in [cc-plugin-ultracart](https://github.com/Captain-Compliance/cc-plugin-ultracart). This
    guide stays as its fallback and its test checklist.
 
 Live clients use the community template from the Gallery, never an imported
